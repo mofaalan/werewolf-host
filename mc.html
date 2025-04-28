@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>狼人殺主持控制台（三欄版）</title>
+  <title>狼人殺主持控制台（三欄版 - 修正版）</title>
   <style>
     body {
       background-color: #1b1b2f;
@@ -14,7 +14,6 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
     }
     h1 {
       margin-bottom: 1rem;
@@ -54,7 +53,6 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      min-height: 90px;
     }
     .counter {
       margin-top: 0.5rem;
@@ -72,6 +70,19 @@
       background-color: #4a90e2;
       color: white;
       cursor: pointer;
+    }
+    .player-area {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+    }
+    .player-item {
+      background: #555;
+      border-radius: 0.5rem;
+      padding: 0.5rem;
+      text-align: center;
+      font-size: 1rem;
     }
     .buttons {
       margin-top: 1rem;
@@ -96,7 +107,7 @@
 
 <body>
 
-<h1>🐺 狼人殺主持控制台（三欄版）</h1>
+<h1>🐺 狼人殺主持控制台（三欄版 - 修正版）</h1>
 
 <div id="sections"></div>
 
@@ -110,8 +121,13 @@
   <button onclick="startGame()">開始玩家查看身份</button>
 </div>
 
+<div class="section" id="playerArea" style="display:none;">
+  <h2>玩家身份方塊</h2>
+  <div class="player-area" id="playerList"></div>
+</div>
+
 <script>
-// 定義角色資料
+// 角色設定
 const roles = {
   "狼人陣營": ["狼人", "狼王", "白狼王", "隱狼", "石像鬼", "血族", "惡靈騎士", "血月使徒", "狼美人", "惡夢之影", "蝕時狼妃", "狼巫", "狼鴉之爪"],
   "好人陣營": ["預言家", "女巫", "獵人", "守衛", "騎士", "禁言長老", "定序王子", "純白之女", "守墓人", "魔術師", "獵夢者", "烏鴉", "獵魔人", "煉金魔女", "奇蹟商人", "白癡", "平民", "老流氓"],
@@ -126,7 +142,7 @@ const maxCount = {
 let locked = false;
 let selectedRoles = [];
 
-// 建立角色區塊
+// 建立角色列表
 function createSections() {
   const container = document.getElementById('sections');
   for (const [camp, roleList] of Object.entries(roles)) {
@@ -159,7 +175,7 @@ function createSections() {
   }
 }
 
-// 展開或收合區塊
+// 收起/展開
 function toggleSection(header) {
   const all = document.querySelectorAll('.section-content');
   all.forEach(s => s.style.display = 'none');
@@ -167,7 +183,7 @@ function toggleSection(header) {
   content.style.display = 'grid';
 }
 
-// 改變狼人/平民數量
+// 修改數量
 function changeCount(button, delta, roleName) {
   if (locked) return;
   const span = button.parentNode.querySelector('span');
@@ -179,22 +195,22 @@ function changeCount(button, delta, roleName) {
   updateCounts();
 }
 
-// 選擇神職角色
+// 選取神職
 function selectRole(div, camp, roleName) {
   if (locked) return;
   if (div.dataset.selected === "true") {
     div.style.backgroundColor = "#444";
     div.dataset.selected = "false";
   } else {
-    div.style.backgroundColor = (roleName.includes("平民") || roleName.includes("老流氓")) ? "#2ecc71" :
-                                 (camp === "狼人陣營" ? "#e74c3c" :
-                                 (camp === "好人陣營" ? "#f1c40f" : "#8e44ad"));
+    div.style.backgroundColor = (camp === "狼人陣營") ? "#e74c3c" :
+                                (camp === "好人陣營") ? "#f1c40f" :
+                                "#8e44ad";
     div.dataset.selected = "true";
   }
   updateCounts();
 }
 
-// 更新每個陣營的人數
+// 更新人數
 function updateCounts() {
   const sections = document.querySelectorAll('.section');
   sections.forEach(section => {
@@ -211,7 +227,7 @@ function updateCounts() {
   });
 }
 
-// 鎖定或解鎖角色設定
+// 鎖定角色
 function toggleLock() {
   const allRoles = document.querySelectorAll('.role-item');
   if (document.getElementById('lockToggle').checked) {
@@ -242,10 +258,21 @@ function toggleLock() {
   }
 }
 
-// 開始遊戲 - 玩家查看身份
+// 開始遊戲
 function startGame() {
-  alert("請開始由MC主持流程：玩家查看手上角色，天黑請閉眼...");
-  // 接下來應該連接天黑流程控制，我可以根據你的需求，繼續搭建。
+  document.getElementById('playerArea').style.display = 'block';
+  const playerList = document.getElementById('playerList');
+  playerList.innerHTML = '';
+  let playerNo = 1;
+  selectedRoles.forEach(({ role, count }) => {
+    for (let i = 1; i <= count; i++) {
+      const div = document.createElement('div');
+      div.className = 'player-item';
+      div.innerHTML = `${role}${i}`;
+      playerList.appendChild(div);
+      playerNo++;
+    }
+  });
 }
 
 createSections();
