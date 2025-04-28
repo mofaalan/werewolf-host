@@ -106,6 +106,21 @@
 </head>
 
 <body>
+<!-- 放在 <body> 最上面 -->
+<div id="mcFlowTip" style="
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background-color: #4a90e2;
+  padding: 1rem;
+  text-align: center;
+  color: white;
+  font-family: 'Noto Sans TC', sans-serif;
+  border-radius: 0 0 1rem 1rem;
+">
+  <div id="mainFlowStep" style="font-size: 24px; font-weight: bold;">流程即將開始，請等待主持指示！</div>
+  <div id="flowDetail" style="font-size: 16px; margin-top: 0.5rem;">請準備好發放角色卡及指示玩家閉眼</div>
+</div>
 
 <h1>🐺 狼人殺主持控制台（三欄版 - 修正版）</h1>
 
@@ -127,6 +142,42 @@
 </div>
 
 <script>
+// 流程步驟與細節設定
+const flowSteps = [
+  { main: "天黑請閉眼", detail: "請MC確認所有玩家閉眼後繼續" },
+  { main: "狼人請睜眼", detail: "請MC等待所有狼人睜眼並互認，之後示意閉眼" },
+  { main: "白狼王單獨睜眼", detail: "如場上有白狼王，請確認白狼王" },
+  { main: "預言家請睜眼", detail: "請MC等待預言家完成查驗，再示意閉眼" },
+  { main: "女巫請睜眼", detail: "請MC詢問女巫是否使用解藥或毒藥" },
+  { main: "守衛請睜眼", detail: "請MC指引守衛選擇守護對象" },
+  { main: "天亮了", detail: "請MC宣布昨晚死亡情況，並引導遺言" },
+  { main: "白天發言階段", detail: "按玩家座位順序發言" },
+  { main: "投票出局", detail: "請MC指引玩家投票，並公布出局者" },
+  { main: "遊戲繼續", detail: "請MC再次指示天黑閉眼，進入下一輪" }
+];
+
+let currentFlowStep = 0;
+
+function updateFlowTip() {
+  document.getElementById('mainFlowStep').innerText = flowSteps[currentFlowStep].main;
+  document.getElementById('flowDetail').innerText = flowSteps[currentFlowStep].detail;
+}
+
+function nextFlowStep() {
+  if (currentFlowStep < flowSteps.length - 1) {
+    currentFlowStep++;
+    updateFlowTip();
+  }
+}
+
+function prevFlowStep() {
+  if (currentFlowStep > 0) {
+    currentFlowStep--;
+    updateFlowTip();
+  }
+}
+
+
 // 角色設定
 const roles = {
   "狼人陣營": ["狼人", "狼王", "白狼王", "隱狼", "石像鬼", "血族", "惡靈騎士", "血月使徒", "狼美人", "惡夢之影", "蝕時狼妃", "狼巫", "狼鴉之爪"],
