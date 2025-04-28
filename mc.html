@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>狼人殺主持控制台（整合版）</title>
+  <title>狼人殺主持系統（新版）</title>
   <style>
     body {
       background-color: #1b1b2f;
@@ -14,7 +14,6 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
     }
     h1 {
       margin-bottom: 1rem;
@@ -26,20 +25,17 @@
       width: 95%;
       margin-bottom: 1rem;
     }
-    .role-list {
+    .role-list, .player-list {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 0.5rem;
     }
-    .role-item {
+    .role-item, .player-item {
       background: #444;
       border-radius: 0.5rem;
-      padding: 0.5rem;
+      padding: 1rem;
       text-align: center;
-      font-size: 1rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      font-size: 1.2rem;
     }
     .counter {
       margin-top: 0.5rem;
@@ -57,13 +53,10 @@
       color: white;
       cursor: pointer;
     }
-    .flow-control, .record-section {
-      margin-top: 1rem;
-    }
     .buttons {
-      margin-top: 1rem;
       display: flex;
       justify-content: space-around;
+      margin-top: 1rem;
     }
     .buttons button {
       padding: 0.8rem 1.5rem;
@@ -74,60 +67,27 @@
       color: white;
       cursor: pointer;
     }
-    input, textarea {
-      width: 100%;
-      padding: 0.5rem;
-      margin-top: 0.3rem;
-      margin-bottom: 1rem;
-      border-radius: 0.5rem;
-      border: none;
+    #lockToggle {
+      margin-top: 0.5rem;
     }
   </style>
 </head>
 
 <body>
 
-<h1>🐺 狼人殺主持人控制台（整合版）</h1>
+<h1>🐺 狼人殺主持系統（新版）</h1>
 
 <div class="section" id="roleManager">
-  <h2>角色管理區</h2>
+  <h2>角色選擇</h2>
   <div class="role-list" id="roleList"></div>
   <div class="buttons">
-    <button onclick="resetRoles()">一鍵清除角色</button>
+    <label><input type="checkbox" id="lockToggle" onchange="toggleLock()"> 🔒 鎖定角色設定</label>
   </div>
 </div>
 
-<div class="section flow-control">
-  <h2>MC流程控制</h2>
-  <div id="mainStep" style="min-height: 80px; text-align: center; font-size: 1.5rem; margin-top: 1rem;">
-    請點擊「下一步」開始主持流程
-  </div>
-  <div class="buttons">
-    <button onclick="prevStep()">⬅️ 上一步</button>
-    <button onclick="nextStep()">✅ 下一步</button>
-  </div>
-</div>
-
-<div class="section record-section">
-  <h2>📝 重要事件記錄</h2>
-  <label>被殺玩家：</label>
-  <input type="text" id="killedPlayer">
-  
-  <label>被救玩家：</label>
-  <input type="text" id="savedPlayer">
-  
-  <label>預言家查驗結果：</label>
-  <input type="text" id="seerResult">
-  
-  <label>投票出局玩家：</label>
-  <input type="text" id="votedOutPlayer">
-  
-  <label>自由備註：</label>
-  <textarea id="freeNote" rows="3"></textarea>
-
-  <div class="buttons">
-    <button onclick="exportRecord()">📄 匯出紀錄</button>
-  </div>
+<div class="section" id="playerManager" style="display:none;">
+  <h2>玩家分配區</h2>
+  <div class="player-list" id="playerList"></div>
 </div>
 
 <script>
@@ -137,24 +97,9 @@ const roles = [
   "邱比特", "野孩子", "炸彈人", "盜賊", "咒狐", "暗戀者"
 ];
 
-const steps = [
-  "天黑請閉眼",
-  "狼人請睜眼，認清彼此",
-  "白狼王單獨睜眼（如有）",
-  "預言家請睜眼，選擇查驗一人",
-  "女巫請睜眼，選擇是否用解藥/毒藥",
-  "守衛請睜眼，選擇今晚守護一人",
-  "天亮了，請公布死亡情況",
-  "白天玩家輪流發言",
-  "開始投票，選擇出局玩家",
-  "公布投票結果，出局玩家遺言",
-  "天黑請閉眼（新一輪夜晚）",
-  "遊戲結束！公布勝利方"
-];
+let locked = false;
+let selectedRoles = [];
 
-let currentStep = 0;
-
-// 初始化角色管理
 function initRoles() {
   const roleList = document.getElementById('roleList');
   roles.forEach(role => {
@@ -173,15 +118,126 @@ function initRoles() {
 }
 
 function changeRoleCount(button, delta) {
+  if (locked) return;
   const span = button.parentNode.querySelector('span');
   let val = parseInt(span.innerText) + delta;
   if (val < 0) val = 0;
   span.innerText = val;
 }
 
-function resetRoles() {
-  const counters = document.querySelectorAll('.role-item .counter span');
-  counters.forEach(span => span.innerText = "0");
+function toggleLock() {
+  const roleList = document.querySelectorAll('.role-item');
+  if (document.getElementById('lockToggle').checked) {
+    locked = true;
+    selectedRoles = [];
+    roleList.forEach(item => {
+      const count = parseInt(item.querySelector('.counter span').innerText);
+      if (count > 0) {
+        selectedRoles.push({ role: item.querySelector('span').innerText, count });
+      } else {
+        item.style.display = 'none';
+      }
+    });
+    generatePlayers();
+    document.getElementById('playerManager').style.display = 'block';
+  } else {
+    locked = false;
+    roleList.forEach(item => {
+      item.style.display = 'block';
+      item.querySelector('.counter span').innerText = '0';
+    });
+    document.getElementById('playerManager').style.display = 'none';
+    document.getElementById('playerList').innerHTML = '';
+  }
+}
+
+function generatePlayers() {
+  const playerList = document.getElementById('playerList');
+  playerList.innerHTML = '';
+  let playerNumber = 1;
+  selectedRoles.forEach(({ role, count }) => {
+    for (let i = 0; i < count; i++) {
+      const div = document.createElement('div');
+      div.className = 'player-item';
+      div.innerHTML = `玩家${playerNumber}<br><small>（點擊設定身份）</small>`;
+      div.dataset.player = `玩家${playerNumber}`;
+      div.dataset.identity = '';
+      div.onclick = () => assignRole(div, role);
+      playerList.appendChild(div);
+      playerNumber++;
+    }
+  });
+}
+
+function assignRole(div, role) {
+  if (div.dataset.identity) {
+    alert(`${div.dataset.player} 已指派身份：${div.dataset.identity}`);
+    return;
+  }
+  if (confirm(`確定將 ${div.dataset.player} 設為【${role}】？`)) {
+    div.innerHTML = `${div.dataset.player}<br>(${role})`;
+    div.dataset.identity = role;
+  }
+}
+
+initRoles();
+</script>
+<!-- 加在 </script> 之前或外面新開一段 -->
+<div class="section" id="flowManager" style="display:none;">
+  <h2>MC流程控制</h2>
+  <div id="mainStep" style="min-height: 80px; text-align: center; font-size: 1.5rem; margin-top: 1rem;">
+    請點擊「下一步」開始主持流程
+  </div>
+  <div class="buttons">
+    <button onclick="prevStep()">⬅️ 上一步</button>
+    <button onclick="nextStep()">✅ 下一步</button>
+  </div>
+</div>
+
+<div class="section" id="recordManager" style="display:none;">
+  <h2>📝 重要事件記錄</h2>
+  <label>被殺玩家：</label>
+  <input type="text" id="killedPlayer">
+
+  <label>被救玩家：</label>
+  <input type="text" id="savedPlayer">
+
+  <label>預言家查驗結果：</label>
+  <input type="text" id="seerResult">
+
+  <label>投票出局玩家：</label>
+  <input type="text" id="votedOutPlayer">
+
+  <label>自由備註：</label>
+  <textarea id="freeNote" rows="3"></textarea>
+
+  <div class="buttons">
+    <button onclick="exportRecord()">📄 匯出紀錄</button>
+  </div>
+</div>
+
+<script>
+const steps = [
+  "天黑請閉眼",
+  "狼人請睜眼，認清彼此",
+  "白狼王單獨睜眼（如有）",
+  "預言家請睜眼，選擇查驗一人",
+  "女巫請睜眼，選擇是否用解藥/毒藥",
+  "守衛請睜眼，選擇今晚守護一人",
+  "天亮了，請公布死亡情況",
+  "白天玩家輪流發言",
+  "開始投票，選擇出局玩家",
+  "公布投票結果，出局玩家遺言",
+  "天黑請閉眼（新一輪夜晚）",
+  "遊戲結束！公布勝利方"
+];
+
+let currentStep = 0;
+
+function startGameFlow() {
+  document.getElementById('flowManager').style.display = 'block';
+  document.getElementById('recordManager').style.display = 'block';
+  updateMainStep();
 }
 
 function updateMainStep() {
@@ -208,7 +264,7 @@ function exportRecord() {
   const seer = document.getElementById('seerResult').value;
   const voted = document.getElementById('votedOutPlayer').value;
   const note = document.getElementById('freeNote').value;
-  
+
   const content = `
 被殺玩家: ${killed}
 被救玩家: ${saved}
@@ -227,9 +283,6 @@ ${note}
   a.click();
   document.body.removeChild(a);
 }
-
-initRoles();
-updateMainStep();
 </script>
 
 </body>
