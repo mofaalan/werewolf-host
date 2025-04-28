@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>狼人殺主持控制台（MC同步版）</title>
+  <title>狼人殺主持控制台（刀人階段版）</title>
   <style>
     body {
       background-color: #1b1b2f;
@@ -85,9 +85,15 @@
       text-align: center;
       font-size: 1rem;
       cursor: pointer;
+      white-space: pre-line;
     }
     .player-item.assigned {
       background-color: #4a90e2;
+      color: #fff;
+      font-weight: bold;
+    }
+    .player-item.killed {
+      background-color: #e74c3c;
       color: #fff;
       font-weight: bold;
     }
@@ -139,7 +145,7 @@
   <div id="flowDetail">請準備好發放角色卡及指示玩家閉眼</div>
 </div>
 
-<h1>🐺 狼人殺主持控制台（三欄版 - 修正版）</h1>
+<h1>🐺 狼人殺主持控制台（三欄版 - 新版含刀人）</h1>
 
 <div id="sections"></div>
 
@@ -158,23 +164,33 @@
   <div class="player-area" id="playerList"></div>
 </div>
 
+
+<div class="buttons" id="startGameButton" style="display:none;">
+  <button onclick="startGame()">開始玩家查看身份</button>
+</div>
+
+<div class="section" id="playerArea" style="display:none;">
+  <h2>玩家身份方塊</h2>
+  <div class="player-area" id="playerList"></div>
+</div>
+
 <script>
-// 必須加上這段！角色資料
+// 角色資料
 const roles = {
   "狼人陣營": ["狼人", "狼王", "白狼王", "隱狼", "石像鬼", "血族", "惡靈騎士", "血月使徒", "狼美人", "惡夢之影", "蝕時狼妃", "狼巫", "狼鴉之爪"],
   "好人陣營": ["預言家", "女巫", "獵人", "守衛", "騎士", "禁言長老", "定序王子", "純白之女", "守墓人", "魔術師", "獵夢者", "烏鴉", "獵魔人", "煉金魔女", "奇蹟商人", "白癡", "平民", "老流氓"],
   "特殊陣營": ["邱比特", "野孩子", "炸彈人", "盜賊", "咒狐", "暗戀者"]
 };
 
-// 平民和狼人數量上限
 const maxCount = {
   "狼人": 3,
   "平民": 4
 };
 
-  // 流程步驟與細節設定
+// 流程步驟設定，新增「狼人刀人」
 const flowSteps = [
   { role: "狼人", main: "狼人請睜眼", detail: "請MC等待所有狼人睜眼並互認，之後示意閉眼" },
+  { role: "狼人刀人", main: "狼人選擇刀人", detail: "請MC點擊被狼人殺害的目標玩家" },
   { role: "白狼王", main: "白狼王單獨睜眼", detail: "如場上有白狼王，請確認白狼王" },
   { role: "預言家", main: "預言家請睜眼", detail: "請MC等待預言家完成查驗，再示意閉眼" },
   { role: "女巫", main: "女巫請睜眼", detail: "請MC詢問女巫是否使用解藥或毒藥" },
@@ -186,14 +202,34 @@ const flowSteps = [
 ];
 
 let currentFlowStep = 0;
-let assignedRoles = {}; // 玩家編號對應角色
-let selectedRoles = [];
+let assignedRoles = {};  // 玩家編號 => 角色
+let selectedRoles = [];  // 選定的角色與數量
 let locked = false;
+let killedPlayer = null; // 被刀的玩家
 
 // 更新流程提示
 function updateFlowTip() {
   document.getElementById('mainFlowStep').innerText = flowSteps[currentFlowStep].main;
   document.getElementById('flowDetail').innerText = flowSteps[currentFlowStep].detail;
+}
+
+// 檢查是否需要指派角色
+function needAssignRole() {
+  return flowSteps[currentFlowStep].role !== null;
+}
+
+// 是否完成當前指派（分配身份或刀人）
+function isAllRoleAssigned() {
+  const role = flowSteps[currentFlowStep].role;
+  if (role === "狼人刀人") {
+    return killedPlayer !== null;
+  }
+  const total = selectedRoles.filter(r => r.role === role).reduce((acc, cur) => acc + cur.count, 0);
+  let assigned = 0;
+  for (const player in assignedRoles) {
+    if (assignedRoles[player] === role) assigned++;
+  }
+  return assigned >= total;
 }
 
 // 上一步
@@ -208,7 +244,7 @@ function prevFlowStep() {
 function nextFlowStep() {
   if (currentFlowStep < flowSteps.length - 1) {
     if (needAssignRole() && !isAllRoleAssigned()) {
-      alert(`請先完成本階段（${flowSteps[currentFlowStep].role}）所有身份指派！`);
+      alert(`請先完成本階段（${flowSteps[currentFlowStep].role}）的身份指派或刀人選擇！`);
       return;
     }
     currentFlowStep++;
@@ -216,33 +252,14 @@ function nextFlowStep() {
   }
 }
 
-// 是否本步需要指派角色
-function needAssignRole() {
-  return flowSteps[currentFlowStep].role !== null;
-}
-
-// 檢查是否所有角色已指派完
-function isAllRoleAssigned() {
-  const roleToAssign = flowSteps[currentFlowStep].role;
-  const total = selectedRoles.filter(r => r.role === roleToAssign).reduce((acc, cur) => acc + cur.count, 0);
-  let assigned = 0;
-  for (const player in assignedRoles) {
-    if (assignedRoles[player] === roleToAssign) assigned++;
-  }
-  return assigned >= total;
-}
-
-// 初始建立角色選單
+// 建立角色區
 function createSections() {
   const container = document.getElementById('sections');
   container.innerHTML = '';
   for (const [camp, roleList] of Object.entries(roles)) {
     const section = document.createElement('div');
     section.className = 'section';
-    section.innerHTML = `
-      <div class="section-header" onclick="toggleSection(this)">${camp} <span class="count">(0人)</span></div>
-      <div class="section-content"></div>
-    `;
+    section.innerHTML = `<div class="section-header" onclick="toggleSection(this)">${camp} <span class="count">(0人)</span></div><div class="section-content"></div>`;
     const content = section.querySelector('.section-content');
     roleList.forEach(role => {
       const roleDiv = document.createElement('div');
@@ -251,11 +268,7 @@ function createSections() {
       if (role === "狼人" || role === "平民") {
         const counter = document.createElement('div');
         counter.className = 'counter';
-        counter.innerHTML = `
-          <button onclick="changeCount(this, -1, '${role}')">-</button>
-          <span>0</span>
-          <button onclick="changeCount(this, 1, '${role}')">+</button>
-        `;
+        counter.innerHTML = `<button onclick="changeCount(this, -1, '${role}')">-</button><span>0</span><button onclick="changeCount(this, 1, '${role}')">+</button>`;
         roleDiv.appendChild(counter);
       } else {
         roleDiv.setAttribute('onclick', `selectRole(this, '${camp}', '${role}')`);
@@ -266,7 +279,7 @@ function createSections() {
   }
 }
 
-// 展開/收起區塊
+// 切換展開
 function toggleSection(header) {
   const all = document.querySelectorAll('.section-content');
   all.forEach(s => s.style.display = 'none');
@@ -274,7 +287,7 @@ function toggleSection(header) {
   content.style.display = 'grid';
 }
 
-// 改變狼人/平民數量
+// 改變平民/狼人數量
 function changeCount(button, delta, roleName) {
   if (locked) return;
   const span = button.parentNode.querySelector('span');
@@ -285,7 +298,7 @@ function changeCount(button, delta, roleName) {
   updateCounts();
 }
 
-// 選擇神職
+// 選神職
 function selectRole(div, camp, roleName) {
   if (locked) return;
   if (div.dataset.selected === "true") {
@@ -298,7 +311,7 @@ function selectRole(div, camp, roleName) {
   updateCounts();
 }
 
-// 更新人數統計
+// 更新人數
 function updateCounts() {
   const sections = document.querySelectorAll('.section');
   sections.forEach(section => {
@@ -315,7 +328,7 @@ function updateCounts() {
   });
 }
 
-// 鎖定或解除鎖定
+// 鎖定選角
 function toggleLock() {
   if (document.getElementById('lockToggle').checked) {
     locked = true;
@@ -339,8 +352,7 @@ function startGame() {
   document.getElementById('playerArea').style.display = 'block';
   const playerList = document.getElementById('playerList');
   playerList.innerHTML = '';
-  let playerNo = 1;
-  const totalPlayers = selectedRoles.reduce((acc, cur) => acc + cur.count, 0);
+  let totalPlayers = selectedRoles.reduce((acc, cur) => acc + cur.count, 0);
   for (let i = 1; i <= totalPlayers; i++) {
     const div = document.createElement('div');
     div.className = 'player-item';
@@ -352,21 +364,33 @@ function startGame() {
   updateFlowTip();
 }
 
-// 指派身份
+// 指派身份或刀人
 function assignRole(div) {
-  if (assignedRoles[div.dataset.player]) {
-    alert(`玩家${div.dataset.player}已被指派為${assignedRoles[div.dataset.player]}！`);
-    return;
-  }
   const role = flowSteps[currentFlowStep].role;
-  if (!role) {
-    alert("現在流程不是指派角色的步驟！");
+  const playerNo = div.dataset.player;
+
+  if (role === "狼人刀人") {
+    if (assignedRoles[playerNo] === "狼人") {
+      alert("狼人不能刀自己人！");
+      return;
+    }
+    if (confirm(`確定狼人殺死 玩家${playerNo}？`)) {
+      killedPlayer = playerNo;
+      div.classList.add('killed');
+      div.innerText += `\n(被殺)`;
+      updateFlowTip();
+    }
     return;
   }
-  if (confirm(`確定將 玩家${div.dataset.player} 指派為【${role}】？`)) {
-    assignedRoles[div.dataset.player] = role;
+
+  if (assignedRoles[playerNo]) {
+    alert(`玩家${playerNo}已被指派為${assignedRoles[playerNo]}！`);
+    return;
+  }
+  if (confirm(`確定將 玩家${playerNo} 指派為【${role}】？`)) {
+    assignedRoles[playerNo] = role;
     div.classList.add('assigned');
-    div.innerText = `玩家${div.dataset.player}\n(${role})`;
+    div.innerText += `\n(${role})`;
     updateFlowTip();
   }
 }
