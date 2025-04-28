@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>狼人殺主持控制台（整合版）</title>
+  <style>
+    body {
+      background-color: #1b1b2f;
+      color: #fff;
+      font-family: "Noto Sans TC", sans-serif;
+      padding: 1rem;
+      font-size: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h1 {
+      margin-bottom: 1rem;
+    }
+    .section {
+      background: #2c2c3c;
+      border-radius: 1rem;
+      padding: 1rem;
+      width: 95%;
+      margin-bottom: 1rem;
+    }
+    .role-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+    .role-item {
+      background: #444;
+      border-radius: 0.5rem;
+      padding: 0.5rem;
+      text-align: center;
+      font-size: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .counter {
+      margin-top: 0.5rem;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .counter button {
+      width: 30px;
+      height: 30px;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 0.5rem;
+      background-color: #4a90e2;
+      color: white;
+      cursor: pointer;
+    }
+    .flow-control, .record-section {
+      margin-top: 1rem;
+    }
+    .buttons {
+      margin-top: 1rem;
+      display: flex;
+      justify-content: space-around;
+    }
+    .buttons button {
+      padding: 0.8rem 1.5rem;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 0.8rem;
+      background-color: #4a90e2;
+      color: white;
+      cursor: pointer;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.3rem;
+      margin-bottom: 1rem;
+      border-radius: 0.5rem;
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🐺 狼人殺主持人控制台（整合版）</h1>
+
+<div class="section" id="roleManager">
+  <h2>角色管理區</h2>
+  <div class="role-list" id="roleList"></div>
+  <div class="buttons">
+    <button onclick="resetRoles()">一鍵清除角色</button>
+  </div>
+</div>
+
+<div class="section flow-control">
+  <h2>MC流程控制</h2>
+  <div id="mainStep" style="min-height: 80px; text-align: center; font-size: 1.5rem; margin-top: 1rem;">
+    請點擊「下一步」開始主持流程
+  </div>
+  <div class="buttons">
+    <button onclick="prevStep()">⬅️ 上一步</button>
+    <button onclick="nextStep()">✅ 下一步</button>
+  </div>
+</div>
+
+<div class="section record-section">
+  <h2>📝 重要事件記錄</h2>
+  <label>被殺玩家：</label>
+  <input type="text" id="killedPlayer">
+  
+  <label>被救玩家：</label>
+  <input type="text" id="savedPlayer">
+  
+  <label>預言家查驗結果：</label>
+  <input type="text" id="seerResult">
+  
+  <label>投票出局玩家：</label>
+  <input type="text" id="votedOutPlayer">
+  
+  <label>自由備註：</label>
+  <textarea id="freeNote" rows="3"></textarea>
+
+  <div class="buttons">
+    <button onclick="exportRecord()">📄 匯出紀錄</button>
+  </div>
+</div>
+
+<script>
+const roles = [
+  "狼人", "狼王", "白狼王", "隱狼", "石像鬼", "血族", "惡靈騎士", "血月使徒", "狼美人", "惡夢之影", "蝕時狼妃", "狼巫", "狼鴉之爪",
+  "預言家", "女巫", "獵人", "守衛", "騎士", "禁言長老", "定序王子", "純白之女", "守墓人", "魔術師", "獵夢者", "烏鴉", "獵魔人", "煉金魔女", "奇蹟商人", "白癡", "平民", "老流氓",
+  "邱比特", "野孩子", "炸彈人", "盜賊", "咒狐", "暗戀者"
+];
+
+const steps = [
+  "天黑請閉眼",
+  "狼人請睜眼，認清彼此",
+  "白狼王單獨睜眼（如有）",
+  "預言家請睜眼，選擇查驗一人",
+  "女巫請睜眼，選擇是否用解藥/毒藥",
+  "守衛請睜眼，選擇今晚守護一人",
+  "天亮了，請公布死亡情況",
+  "白天玩家輪流發言",
+  "開始投票，選擇出局玩家",
+  "公布投票結果，出局玩家遺言",
+  "天黑請閉眼（新一輪夜晚）",
+  "遊戲結束！公布勝利方"
+];
+
+let currentStep = 0;
+
+// 初始化角色管理
+function initRoles() {
+  const roleList = document.getElementById('roleList');
+  roles.forEach(role => {
+    const div = document.createElement('div');
+    div.className = 'role-item';
+    div.innerHTML = `
+      <span>${role}</span>
+      <div class="counter">
+        <button onclick="changeRoleCount(this, -1)">-</button>
+        <span>0</span>
+        <button onclick="changeRoleCount(this, 1)">+</button>
+      </div>
+    `;
+    roleList.appendChild(div);
+  });
+}
+
+function changeRoleCount(button, delta) {
+  const span = button.parentNode.querySelector('span');
+  let val = parseInt(span.innerText) + delta;
+  if (val < 0) val = 0;
+  span.innerText = val;
+}
+
+function resetRoles() {
+  const counters = document.querySelectorAll('.role-item .counter span');
+  counters.forEach(span => span.innerText = "0");
+}
+
+function updateMainStep() {
+  document.getElementById('mainStep').innerText = steps[currentStep];
+}
+
+function nextStep() {
+  if (currentStep < steps.length - 1) {
+    currentStep++;
+    updateMainStep();
+  }
+}
+
+function prevStep() {
+  if (currentStep > 0) {
+    currentStep--;
+    updateMainStep();
+  }
+}
+
+function exportRecord() {
+  const killed = document.getElementById('killedPlayer').value;
+  const saved = document.getElementById('savedPlayer').value;
+  const seer = document.getElementById('seerResult').value;
+  const voted = document.getElementById('votedOutPlayer').value;
+  const note = document.getElementById('freeNote').value;
+  
+  const content = `
+被殺玩家: ${killed}
+被救玩家: ${saved}
+預言家查驗結果: ${seer}
+投票出局玩家: ${voted}
+自由備註:
+${note}
+  `.trim();
+
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = "狼人殺主持紀錄.txt";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+initRoles();
+updateMainStep();
+</script>
+
+</body>
+</html>
