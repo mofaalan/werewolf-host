@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>狼人殺主持控制台（三欄版 - 修正版）</title>
+  <title>狼人殺主持控制台（MC同步版）</title>
   <style>
     body {
       background-color: #1b1b2f;
@@ -14,6 +14,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      min-height: 100vh;
     }
     h1 {
       margin-bottom: 1rem;
@@ -74,15 +75,21 @@
     .player-area {
       margin-top: 1rem;
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 0.5rem;
     }
     .player-item {
       background: #555;
       border-radius: 0.5rem;
-      padding: 0.5rem;
+      padding: 0.8rem;
       text-align: center;
       font-size: 1rem;
+      cursor: pointer;
+    }
+    .player-item.assigned {
+      background-color: #4a90e2;
+      color: #fff;
+      font-weight: bold;
     }
     .buttons {
       margin-top: 1rem;
@@ -102,24 +109,34 @@
       transform: scale(1.5);
       margin-left: 1rem;
     }
+    #mcFlowTip {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      background-color: #4a90e2;
+      padding: 1rem;
+      text-align: center;
+      color: white;
+      font-family: 'Noto Sans TC', sans-serif;
+      border-radius: 0 0 1rem 1rem;
+      margin-bottom: 1rem;
+    }
+    #mainFlowStep {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    #flowDetail {
+      font-size: 16px;
+      margin-top: 0.5rem;
+    }
   </style>
 </head>
 
 <body>
-<!-- 放在 <body> 最上面 -->
-<div id="mcFlowTip" style="
-  position: sticky;
-  top: 0;
-  z-index: 999;
-  background-color: #4a90e2;
-  padding: 1rem;
-  text-align: center;
-  color: white;
-  font-family: 'Noto Sans TC', sans-serif;
-  border-radius: 0 0 1rem 1rem;
-">
-  <div id="mainFlowStep" style="font-size: 24px; font-weight: bold;">流程即將開始，請等待主持指示！</div>
-  <div id="flowDetail" style="font-size: 16px; margin-top: 0.5rem;">請準備好發放角色卡及指示玩家閉眼</div>
+<!-- MC流程提示區 -->
+<div id="mcFlowTip">
+  <div id="mainFlowStep">流程即將開始，請等待主持指示！</div>
+  <div id="flowDetail">請準備好發放角色卡及指示玩家閉眼</div>
 </div>
 
 <h1>🐺 狼人殺主持控制台（三欄版 - 修正版）</h1>
@@ -144,32 +161,29 @@
 <script>
 // 流程步驟與細節設定
 const flowSteps = [
-  { main: "天黑請閉眼", detail: "請MC確認所有玩家閉眼後繼續" },
-  { main: "狼人請睜眼", detail: "請MC等待所有狼人睜眼並互認，之後示意閉眼" },
-  { main: "白狼王單獨睜眼", detail: "如場上有白狼王，請確認白狼王" },
-  { main: "預言家請睜眼", detail: "請MC等待預言家完成查驗，再示意閉眼" },
-  { main: "女巫請睜眼", detail: "請MC詢問女巫是否使用解藥或毒藥" },
-  { main: "守衛請睜眼", detail: "請MC指引守衛選擇守護對象" },
-  { main: "天亮了", detail: "請MC宣布昨晚死亡情況，並引導遺言" },
-  { main: "白天發言階段", detail: "按玩家座位順序發言" },
-  { main: "投票出局", detail: "請MC指引玩家投票，並公布出局者" },
-  { main: "遊戲繼續", detail: "請MC再次指示天黑閉眼，進入下一輪" }
+  { role: "狼人", main: "狼人請睜眼", detail: "請MC等待所有狼人睜眼並互認，之後示意閉眼" },
+  { role: "白狼王", main: "白狼王單獨睜眼", detail: "如場上有白狼王，請確認白狼王" },
+  { role: "預言家", main: "預言家請睜眼", detail: "請MC等待預言家完成查驗，再示意閉眼" },
+  { role: "女巫", main: "女巫請睜眼", detail: "請MC詢問女巫是否使用解藥或毒藥" },
+  { role: "守衛", main: "守衛請睜眼", detail: "請MC指引守衛選擇守護對象" },
+  { role: null, main: "天亮了", detail: "請MC宣布昨晚死亡情況，並引導遺言" },
+  { role: null, main: "白天發言階段", detail: "按玩家座位順序發言" },
+  { role: null, main: "投票出局", detail: "請MC指引玩家投票，並公布出局者" },
+  { role: null, main: "遊戲繼續", detail: "請MC再次指示天黑閉眼，進入下一輪" }
 ];
 
 let currentFlowStep = 0;
+let assignedRoles = {}; // 玩家編號對應角色
+let selectedRoles = [];
+let locked = false;
 
+// 更新流程提示
 function updateFlowTip() {
   document.getElementById('mainFlowStep').innerText = flowSteps[currentFlowStep].main;
   document.getElementById('flowDetail').innerText = flowSteps[currentFlowStep].detail;
 }
 
-function nextFlowStep() {
-  if (currentFlowStep < flowSteps.length - 1) {
-    currentFlowStep++;
-    updateFlowTip();
-  }
-}
-
+// 上一步
 function prevFlowStep() {
   if (currentFlowStep > 0) {
     currentFlowStep--;
@@ -177,25 +191,38 @@ function prevFlowStep() {
   }
 }
 
+// 下一步
+function nextFlowStep() {
+  if (currentFlowStep < flowSteps.length - 1) {
+    if (needAssignRole() && !isAllRoleAssigned()) {
+      alert(`請先完成本階段（${flowSteps[currentFlowStep].role}）所有身份指派！`);
+      return;
+    }
+    currentFlowStep++;
+    updateFlowTip();
+  }
+}
 
-// 角色設定
-const roles = {
-  "狼人陣營": ["狼人", "狼王", "白狼王", "隱狼", "石像鬼", "血族", "惡靈騎士", "血月使徒", "狼美人", "惡夢之影", "蝕時狼妃", "狼巫", "狼鴉之爪"],
-  "好人陣營": ["預言家", "女巫", "獵人", "守衛", "騎士", "禁言長老", "定序王子", "純白之女", "守墓人", "魔術師", "獵夢者", "烏鴉", "獵魔人", "煉金魔女", "奇蹟商人", "白癡", "平民", "老流氓"],
-  "特殊陣營": ["邱比特", "野孩子", "炸彈人", "盜賊", "咒狐", "暗戀者"]
-};
+// 是否本步需要指派角色
+function needAssignRole() {
+  return flowSteps[currentFlowStep].role !== null;
+}
 
-const maxCount = {
-  "狼人": 3,
-  "平民": 4
-};
+// 檢查是否所有角色已指派完
+function isAllRoleAssigned() {
+  const roleToAssign = flowSteps[currentFlowStep].role;
+  const total = selectedRoles.filter(r => r.role === roleToAssign).reduce((acc, cur) => acc + cur.count, 0);
+  let assigned = 0;
+  for (const player in assignedRoles) {
+    if (assignedRoles[player] === roleToAssign) assigned++;
+  }
+  return assigned >= total;
+}
 
-let locked = false;
-let selectedRoles = [];
-
-// 建立角色列表
+// 初始建立角色選單
 function createSections() {
   const container = document.getElementById('sections');
+  container.innerHTML = '';
   for (const [camp, roleList] of Object.entries(roles)) {
     const section = document.createElement('div');
     section.className = 'section';
@@ -226,7 +253,7 @@ function createSections() {
   }
 }
 
-// 收起/展開
+// 展開/收起區塊
 function toggleSection(header) {
   const all = document.querySelectorAll('.section-content');
   all.forEach(s => s.style.display = 'none');
@@ -234,34 +261,31 @@ function toggleSection(header) {
   content.style.display = 'grid';
 }
 
-// 修改數量
+// 改變狼人/平民數量
 function changeCount(button, delta, roleName) {
   if (locked) return;
   const span = button.parentNode.querySelector('span');
   let val = parseInt(span.innerText) + delta;
-  const limit = maxCount[roleName];
   if (val < 0) val = 0;
-  if (val > limit) val = limit;
+  if (val > maxCount[roleName]) val = maxCount[roleName];
   span.innerText = val;
   updateCounts();
 }
 
-// 選取神職
+// 選擇神職
 function selectRole(div, camp, roleName) {
   if (locked) return;
   if (div.dataset.selected === "true") {
     div.style.backgroundColor = "#444";
     div.dataset.selected = "false";
   } else {
-    div.style.backgroundColor = (camp === "狼人陣營") ? "#e74c3c" :
-                                (camp === "好人陣營") ? "#f1c40f" :
-                                "#8e44ad";
+    div.style.backgroundColor = (camp === "狼人陣營") ? "#e74c3c" : (camp === "好人陣營") ? "#f1c40f" : "#8e44ad";
     div.dataset.selected = "true";
   }
   updateCounts();
 }
 
-// 更新人數
+// 更新人數統計
 function updateCounts() {
   const sections = document.querySelectorAll('.section');
   sections.forEach(section => {
@@ -278,34 +302,22 @@ function updateCounts() {
   });
 }
 
-// 鎖定角色
+// 鎖定或解除鎖定
 function toggleLock() {
-  const allRoles = document.querySelectorAll('.role-item');
   if (document.getElementById('lockToggle').checked) {
     locked = true;
     selectedRoles = [];
-    allRoles.forEach(item => {
-      const spanText = item.querySelector('span').innerText;
+    document.querySelectorAll('.role-item').forEach(item => {
+      const role = item.querySelector('span').innerText;
       const count = item.querySelector('.counter') ? parseInt(item.querySelector('.counter span').innerText) : (item.dataset.selected === "true" ? 1 : 0);
-      if (count > 0) {
-        selectedRoles.push({ role: spanText, count });
-      } else {
-        item.style.display = 'none';
-      }
+      if (count > 0) selectedRoles.push({ role, count });
+      else item.style.display = 'none';
     });
     document.getElementById('startGameButton').style.display = 'flex';
   } else {
     locked = false;
-    allRoles.forEach(item => {
-      item.style.display = 'flex';
-      if (item.querySelector('.counter')) {
-        item.querySelector('.counter span').innerText = "0";
-      } else {
-        item.style.backgroundColor = "#444";
-        item.dataset.selected = "false";
-      }
-    });
     document.getElementById('startGameButton').style.display = 'none';
+    createSections();
   }
 }
 
@@ -315,19 +327,38 @@ function startGame() {
   const playerList = document.getElementById('playerList');
   playerList.innerHTML = '';
   let playerNo = 1;
-  selectedRoles.forEach(({ role, count }) => {
-    for (let i = 1; i <= count; i++) {
-      const div = document.createElement('div');
-      div.className = 'player-item';
-      div.innerHTML = `${role}${i}`;
-      playerList.appendChild(div);
-      playerNo++;
-    }
-  });
+  const totalPlayers = selectedRoles.reduce((acc, cur) => acc + cur.count, 0);
+  for (let i = 1; i <= totalPlayers; i++) {
+    const div = document.createElement('div');
+    div.className = 'player-item';
+    div.innerText = `玩家${i}`;
+    div.dataset.player = i;
+    div.onclick = () => assignRole(div);
+    playerList.appendChild(div);
+  }
+  updateFlowTip();
+}
+
+// 指派身份
+function assignRole(div) {
+  if (assignedRoles[div.dataset.player]) {
+    alert(`玩家${div.dataset.player}已被指派為${assignedRoles[div.dataset.player]}！`);
+    return;
+  }
+  const role = flowSteps[currentFlowStep].role;
+  if (!role) {
+    alert("現在流程不是指派角色的步驟！");
+    return;
+  }
+  if (confirm(`確定將 玩家${div.dataset.player} 指派為【${role}】？`)) {
+    assignedRoles[div.dataset.player] = role;
+    div.classList.add('assigned');
+    div.innerText = `玩家${div.dataset.player}\n(${role})`;
+    updateFlowTip();
+  }
 }
 
 createSections();
 </script>
-
 </body>
 </html>
