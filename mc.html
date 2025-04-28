@@ -83,7 +83,254 @@
 </head>
 <body>
 
+<!-- MC流程提示區 -->
+<div id="mcFlowTip">
+  <div id="mainFlowStep">流程即將開始，請等待主持指示！</div>
+  <div id="flowDetail">請準備好發放角色卡及指示玩家閉眼</div>
+</div>
 
+<h1>🐺 狼人殺主持控制台（三欄版 - 修正版）</h1>
+
+<div id="sections"></div>
+
+<div class="buttons">
+  <label>
+    <input type="checkbox" id="lockToggle" onchange="toggleLock()"> 🔒 鎖定角色設定
+  </label>
+</div>
+
+<div class="buttons" id="startGameButton" style="display:none;">
+  <button onclick="startGame()">開始玩家查看身份</button>
+</div>
+
+<div class="section" id="playerArea" style="display:none;">
+  <h2>玩家身份方塊</h2>
+  <div class="player-area" id="playerList"></div>
+</div>
+
+<script>
+// 角色資料設定
+const roles = {
+  "狼人陣營": ["狼人", "狼王", "白狼王", "隱狼", "石像鬼", "血族", "惡靈騎士", "血月使徒", "狼美人", "惡夢之影", "蝕時狼妃", "狼巫", "狼鴉之爪"],
+  "好人陣營": ["預言家", "女巫", "獵人", "守衛", "騎士", "禁言長老", "定序王子", "純白之女", "守墓人", "魔術師", "獵夢者", "烏鴉", "獵魔人", "煉金魔女", "奇蹟商人", "白癡", "平民", "老流氓"],
+  "特殊陣營": ["邱比特", "野孩子", "炸彈人", "盜賊", "咒狐", "暗戀者"]
+};
+
+const maxCount = {
+  "狼人": 3,
+  "平民": 4
+};
+
+// 流程步驟設定（新增狼人刀人階段）
+const flowSteps = [
+  { role: "狼人", main: "狼人請睜眼", detail: "請MC等待所有狼人睜眼並互認，之後示意閉眼" },
+  { role: "狼人刀人", main: "狼人選擇刀人", detail: "請MC點擊被狼人殺害的目標玩家" },
+  { role: "白狼王", main: "白狼王單獨睜眼", detail: "如場上有白狼王，請確認白狼王" },
+  { role: "預言家", main: "預言家請睜眼", detail: "請MC等待預言家完成查驗，再示意閉眼" },
+  { role: "女巫", main: "女巫請睜眼", detail: "請MC詢問女巫是否使用解藥或毒藥" },
+  { role: "守衛", main: "守衛請睜眼", detail: "請MC指引守衛選擇守護對象" },
+  { role: null, main: "天亮了", detail: "請MC宣布昨晚死亡情況，並引導遺言" },
+  { role: null, main: "白天發言階段", detail: "按玩家座位順序發言" },
+  { role: null, main: "投票出局", detail: "請MC指引玩家投票，並公布出局者" },
+  { role: null, main: "遊戲繼續", detail: "請MC再次指示天黑閉眼，進入下一輪" }
+];
+
+let currentFlowStep = 0;
+let assignedRoles = {};  // 玩家編號 => 角色
+let selectedRoles = [];  // 選定的角色與數量
+let locked = false;
+let killedPlayer = null; // 被刀的玩家
+
+// 更新流程提示
+function updateFlowTip() {
+  document.getElementById('mainFlowStep').innerText = flowSteps[currentFlowStep].main;
+  document.getElementById('flowDetail').innerText = flowSteps[currentFlowStep].detail;
+}
+
+// 檢查是否需要指派角色
+function needAssignRole() {
+  return flowSteps[currentFlowStep].role !== null;
+}
+
+// 是否完成當前指派（分配身份或刀人）
+function isAllRoleAssigned() {
+  const role = flowSteps[currentFlowStep].role;
+  if (role === "狼人刀人") {
+    return killedPlayer !== null;
+  }
+  const total = selectedRoles.filter(r => r.role === role).reduce((acc, cur) => acc + cur.count, 0);
+  let assigned = 0;
+  for (const player in assignedRoles) {
+    if (assignedRoles[player] === role) assigned++;
+  }
+  return assigned >= total;
+}
+
+// 上一步
+function prevFlowStep() {
+  if (currentFlowStep > 0) {
+    currentFlowStep--;
+    updateFlowTip();
+  }
+}
+
+// 下一步
+function nextFlowStep() {
+  if (currentFlowStep < flowSteps.length - 1) {
+    if (needAssignRole() && !isAllRoleAssigned()) {
+      alert(`請先完成本階段（${flowSteps[currentFlowStep].role}）的身份指派或刀人選擇！`);
+      return;
+    }
+    currentFlowStep++;
+    updateFlowTip();
+  }
+}
+
+// 建立角色區
+function createSections() {
+  const container = document.getElementById('sections');
+  container.innerHTML = '';
+  for (const [camp, roleList] of Object.entries(roles)) {
+    const section = document.createElement('div');
+    section.className = 'section';
+    section.innerHTML = `<div class="section-header" onclick="toggleSection(this)">${camp} <span class="count">(0人)</span></div><div class="section-content"></div>`;
+    const content = section.querySelector('.section-content');
+    roleList.forEach(role => {
+      const roleDiv = document.createElement('div');
+      roleDiv.className = 'role-item';
+      roleDiv.innerHTML = `<span>${role}</span>`;
+      if (role === "狼人" || role === "平民") {
+        const counter = document.createElement('div');
+        counter.className = 'counter';
+        counter.innerHTML = `<button onclick="changeCount(this, -1, '${role}')">-</button><span>0</span><button onclick="changeCount(this, 1, '${role}')">+</button>`;
+        roleDiv.appendChild(counter);
+      } else {
+        roleDiv.setAttribute('onclick', `selectRole(this, '${camp}', '${role}')`);
+      }
+      content.appendChild(roleDiv);
+    });
+    container.appendChild(section);
+  }
+}
+
+// 切換展開
+function toggleSection(header) {
+  const all = document.querySelectorAll('.section-content');
+  all.forEach(s => s.style.display = 'none');
+  const content = header.nextElementSibling;
+  content.style.display = 'grid';
+}
+
+// 改
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>狼人殺主持控制台 - 真人MC版</title>
+  <style>
+    body {
+      background-color: #1b1b2f;
+      color: #fff;
+      font-family: "Noto Sans TC", sans-serif;
+      padding: 1rem;
+      font-size: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h1 {
+      margin-bottom: 1rem;
+    }
+    .section, .player-area {
+      background: #2c2c3c;
+      border-radius: 1rem;
+      padding: 1rem;
+      width: 95%;
+      margin-bottom: 1rem;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    .role-item, .player-item {
+      background: #444;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.2rem;
+      cursor: pointer;
+      white-space: pre-line;
+    }
+    .assigned {
+      background-color: #4a90e2;
+      font-weight: bold;
+    }
+    .killed {
+      background-color: #e74c3c;
+      font-weight: bold;
+    }
+    .buttons {
+      margin-top: 1rem;
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+    .buttons button {
+      padding: 0.8rem 1.5rem;
+      font-size: 1.2rem;
+      border-radius: 0.8rem;
+      background-color: #4a90e2;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+    #mcFlowTip {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      background: #4a90e2;
+      padding: 1rem;
+      border-radius: 0 0 1rem 1rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    #mainFlowStep {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    #flowDetail {
+      font-size: 16px;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- MC流程提示區 -->
+<div id="mcFlowTip">
+  <div id="mainFlowStep">流程即將開始，請等待主持指示！</div>
+  <div id="flowDetail">請準備好發放角色卡及指示玩家閉眼</div>
+</div>
+
+<h1>🐺 狼人殺主持控制台（三欄版 - 修正版）</h1>
+
+<div id="sections"></div>
+
+<div class="buttons">
+  <label>
+    <input type="checkbox" id="lockToggle" onchange="toggleLock()"> 🔒 鎖定角色設定
+  </label>
+</div>
+
+<div class="buttons" id="startGameButton" style="display:none;">
+  <button onclick="startGame()">開始玩家查看身份</button>
+</div>
+
+<div class="section" id="playerArea" style="display:none;">
+  <h2>玩家身份方塊</h2>
+  <div class="player-area" id="playerList"></div>
+</div>
 
 <script>
 // 角色資料設定
