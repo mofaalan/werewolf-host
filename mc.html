@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>狼人殺主持系統（新版）</title>
+  <title>狼人殺主持控制台（三欄版）</title>
   <style>
     body {
       background-color: #1b1b2f;
@@ -14,6 +14,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      min-height: 100vh;
     }
     h1 {
       margin-bottom: 1rem;
@@ -25,23 +26,42 @@
       width: 95%;
       margin-bottom: 1rem;
     }
-    .role-list, .player-list {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.5rem;
+    .section-header {
+      padding: 1rem;
+      background: #363648;
+      cursor: pointer;
+      font-size: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    .role-item, .player-item {
+    .section-content {
+      display: none;
+      padding: 1rem;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    .section-content.grid {
+      display: grid;
+    }
+    .role-item {
       background: #444;
       border-radius: 0.5rem;
       padding: 1rem;
       text-align: center;
       font-size: 1.2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 90px;
     }
     .counter {
       margin-top: 0.5rem;
       display: flex;
-      gap: 0.5rem;
       justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
     }
     .counter button {
       width: 30px;
@@ -54,9 +74,9 @@
       cursor: pointer;
     }
     .buttons {
-      display: flex;
-      justify-content: space-around;
       margin-top: 1rem;
+      display: flex;
+      justify-content: center;
     }
     .buttons button {
       padding: 0.8rem 1.5rem;
@@ -67,222 +87,168 @@
       color: white;
       cursor: pointer;
     }
-    #lockToggle {
-      margin-top: 0.5rem;
+    input[type="checkbox"] {
+      transform: scale(1.5);
+      margin-left: 1rem;
     }
   </style>
 </head>
 
 <body>
 
-<h1>🐺 狼人殺主持系統（新版）</h1>
+<h1>🐺 狼人殺主持控制台（三欄版）</h1>
 
-<div class="section" id="roleManager">
-  <h2>角色選擇</h2>
-  <div class="role-list" id="roleList"></div>
-  <div class="buttons">
-    <label><input type="checkbox" id="lockToggle" onchange="toggleLock()"> 🔒 鎖定角色設定</label>
-  </div>
+<div id="sections"></div>
+
+<div class="buttons">
+  <label>
+    <input type="checkbox" id="lockToggle" onchange="toggleLock()"> 🔒 鎖定角色設定
+  </label>
 </div>
 
-<div class="section" id="playerManager" style="display:none;">
-  <h2>玩家分配區</h2>
-  <div class="player-list" id="playerList"></div>
+<div class="buttons" id="startGameButton" style="display:none;">
+  <button onclick="startGame()">開始玩家查看身份</button>
 </div>
 
 <script>
-const roles = [
-  "狼人", "狼王", "白狼王", "隱狼", "石像鬼", "血族", "惡靈騎士", "血月使徒", "狼美人", "惡夢之影", "蝕時狼妃", "狼巫", "狼鴉之爪",
-  "預言家", "女巫", "獵人", "守衛", "騎士", "禁言長老", "定序王子", "純白之女", "守墓人", "魔術師", "獵夢者", "烏鴉", "獵魔人", "煉金魔女", "奇蹟商人", "白癡", "平民", "老流氓",
-  "邱比特", "野孩子", "炸彈人", "盜賊", "咒狐", "暗戀者"
-];
+// 定義角色資料
+const roles = {
+  "狼人陣營": ["狼人", "狼王", "白狼王", "隱狼", "石像鬼", "血族", "惡靈騎士", "血月使徒", "狼美人", "惡夢之影", "蝕時狼妃", "狼巫", "狼鴉之爪"],
+  "好人陣營": ["預言家", "女巫", "獵人", "守衛", "騎士", "禁言長老", "定序王子", "純白之女", "守墓人", "魔術師", "獵夢者", "烏鴉", "獵魔人", "煉金魔女", "奇蹟商人", "白癡", "平民", "老流氓"],
+  "特殊陣營": ["邱比特", "野孩子", "炸彈人", "盜賊", "咒狐", "暗戀者"]
+};
+
+const maxCount = {
+  "狼人": 3,
+  "平民": 4
+};
 
 let locked = false;
 let selectedRoles = [];
 
-function initRoles() {
-  const roleList = document.getElementById('roleList');
-  roles.forEach(role => {
-    const div = document.createElement('div');
-    div.className = 'role-item';
-    div.innerHTML = `
-      <span>${role}</span>
-      <div class="counter">
-        <button onclick="changeRoleCount(this, -1)">-</button>
-        <span>0</span>
-        <button onclick="changeRoleCount(this, 1)">+</button>
-      </div>
+// 建立角色區塊
+function createSections() {
+  const container = document.getElementById('sections');
+  for (const [camp, roleList] of Object.entries(roles)) {
+    const section = document.createElement('div');
+    section.className = 'section';
+    section.innerHTML = `
+      <div class="section-header" onclick="toggleSection(this)">${camp} <span class="count">(0人)</span></div>
+      <div class="section-content"></div>
     `;
-    roleList.appendChild(div);
-  });
+    const content = section.querySelector('.section-content');
+    roleList.forEach(role => {
+      const roleDiv = document.createElement('div');
+      roleDiv.className = 'role-item';
+      roleDiv.innerHTML = `<span>${role}</span>`;
+      if (role === "狼人" || role === "平民") {
+        const counter = document.createElement('div');
+        counter.className = 'counter';
+        counter.innerHTML = `
+          <button onclick="changeCount(this, -1, '${role}')">-</button>
+          <span>0</span>
+          <button onclick="changeCount(this, 1, '${role}')">+</button>
+        `;
+        roleDiv.appendChild(counter);
+      } else {
+        roleDiv.setAttribute('onclick', `selectRole(this, '${camp}', '${role}')`);
+      }
+      content.appendChild(roleDiv);
+    });
+    container.appendChild(section);
+  }
 }
 
-function changeRoleCount(button, delta) {
+// 展開或收合區塊
+function toggleSection(header) {
+  const all = document.querySelectorAll('.section-content');
+  all.forEach(s => s.style.display = 'none');
+  const content = header.nextElementSibling;
+  content.style.display = 'grid';
+}
+
+// 改變狼人/平民數量
+function changeCount(button, delta, roleName) {
   if (locked) return;
   const span = button.parentNode.querySelector('span');
   let val = parseInt(span.innerText) + delta;
+  const limit = maxCount[roleName];
   if (val < 0) val = 0;
+  if (val > limit) val = limit;
   span.innerText = val;
+  updateCounts();
 }
 
+// 選擇神職角色
+function selectRole(div, camp, roleName) {
+  if (locked) return;
+  if (div.dataset.selected === "true") {
+    div.style.backgroundColor = "#444";
+    div.dataset.selected = "false";
+  } else {
+    div.style.backgroundColor = (roleName.includes("平民") || roleName.includes("老流氓")) ? "#2ecc71" :
+                                 (camp === "狼人陣營" ? "#e74c3c" :
+                                 (camp === "好人陣營" ? "#f1c40f" : "#8e44ad"));
+    div.dataset.selected = "true";
+  }
+  updateCounts();
+}
+
+// 更新每個陣營的人數
+function updateCounts() {
+  const sections = document.querySelectorAll('.section');
+  sections.forEach(section => {
+    const roles = section.querySelectorAll('.role-item');
+    let count = 0;
+    roles.forEach(role => {
+      if (role.querySelector('.counter')) {
+        count += parseInt(role.querySelector('.counter span').innerText);
+      } else if (role.dataset.selected === "true") {
+        count += 1;
+      }
+    });
+    section.querySelector('.count').innerText = `(${count}人)`;
+  });
+}
+
+// 鎖定或解鎖角色設定
 function toggleLock() {
-  const roleList = document.querySelectorAll('.role-item');
+  const allRoles = document.querySelectorAll('.role-item');
   if (document.getElementById('lockToggle').checked) {
     locked = true;
     selectedRoles = [];
-    roleList.forEach(item => {
-      const count = parseInt(item.querySelector('.counter span').innerText);
+    allRoles.forEach(item => {
+      const spanText = item.querySelector('span').innerText;
+      const count = item.querySelector('.counter') ? parseInt(item.querySelector('.counter span').innerText) : (item.dataset.selected === "true" ? 1 : 0);
       if (count > 0) {
-        selectedRoles.push({ role: item.querySelector('span').innerText, count });
+        selectedRoles.push({ role: spanText, count });
       } else {
         item.style.display = 'none';
       }
     });
-    generatePlayers();
-    document.getElementById('playerManager').style.display = 'block';
+    document.getElementById('startGameButton').style.display = 'flex';
   } else {
     locked = false;
-    roleList.forEach(item => {
-      item.style.display = 'block';
-      item.querySelector('.counter span').innerText = '0';
+    allRoles.forEach(item => {
+      item.style.display = 'flex';
+      if (item.querySelector('.counter')) {
+        item.querySelector('.counter span').innerText = "0";
+      } else {
+        item.style.backgroundColor = "#444";
+        item.dataset.selected = "false";
+      }
     });
-    document.getElementById('playerManager').style.display = 'none';
-    document.getElementById('playerList').innerHTML = '';
+    document.getElementById('startGameButton').style.display = 'none';
   }
 }
 
-function generatePlayers() {
-  const playerList = document.getElementById('playerList');
-  playerList.innerHTML = '';
-  let playerNumber = 1;
-  selectedRoles.forEach(({ role, count }) => {
-    for (let i = 0; i < count; i++) {
-      const div = document.createElement('div');
-      div.className = 'player-item';
-      div.innerHTML = `玩家${playerNumber}<br><small>（點擊設定身份）</small>`;
-      div.dataset.player = `玩家${playerNumber}`;
-      div.dataset.identity = '';
-      div.onclick = () => assignRole(div, role);
-      playerList.appendChild(div);
-      playerNumber++;
-    }
-  });
+// 開始遊戲 - 玩家查看身份
+function startGame() {
+  alert("請開始由MC主持流程：玩家查看手上角色，天黑請閉眼...");
+  // 接下來應該連接天黑流程控制，我可以根據你的需求，繼續搭建。
 }
 
-function assignRole(div, role) {
-  if (div.dataset.identity) {
-    alert(`${div.dataset.player} 已指派身份：${div.dataset.identity}`);
-    return;
-  }
-  if (confirm(`確定將 ${div.dataset.player} 設為【${role}】？`)) {
-    div.innerHTML = `${div.dataset.player}<br>(${role})`;
-    div.dataset.identity = role;
-  }
-}
-
-initRoles();
-</script>
-<!-- 加在 </script> 之前或外面新開一段 -->
-<div class="section" id="flowManager" style="display:none;">
-  <h2>MC流程控制</h2>
-  <div id="mainStep" style="min-height: 80px; text-align: center; font-size: 1.5rem; margin-top: 1rem;">
-    請點擊「下一步」開始主持流程
-  </div>
-  <div class="buttons">
-    <button onclick="prevStep()">⬅️ 上一步</button>
-    <button onclick="nextStep()">✅ 下一步</button>
-  </div>
-</div>
-
-<div class="section" id="recordManager" style="display:none;">
-  <h2>📝 重要事件記錄</h2>
-  <label>被殺玩家：</label>
-  <input type="text" id="killedPlayer">
-
-  <label>被救玩家：</label>
-  <input type="text" id="savedPlayer">
-
-  <label>預言家查驗結果：</label>
-  <input type="text" id="seerResult">
-
-  <label>投票出局玩家：</label>
-  <input type="text" id="votedOutPlayer">
-
-  <label>自由備註：</label>
-  <textarea id="freeNote" rows="3"></textarea>
-
-  <div class="buttons">
-    <button onclick="exportRecord()">📄 匯出紀錄</button>
-  </div>
-</div>
-
-<script>
-const steps = [
-  "天黑請閉眼",
-  "狼人請睜眼，認清彼此",
-  "白狼王單獨睜眼（如有）",
-  "預言家請睜眼，選擇查驗一人",
-  "女巫請睜眼，選擇是否用解藥/毒藥",
-  "守衛請睜眼，選擇今晚守護一人",
-  "天亮了，請公布死亡情況",
-  "白天玩家輪流發言",
-  "開始投票，選擇出局玩家",
-  "公布投票結果，出局玩家遺言",
-  "天黑請閉眼（新一輪夜晚）",
-  "遊戲結束！公布勝利方"
-];
-
-let currentStep = 0;
-
-function startGameFlow() {
-  document.getElementById('flowManager').style.display = 'block';
-  document.getElementById('recordManager').style.display = 'block';
-  updateMainStep();
-}
-
-function updateMainStep() {
-  document.getElementById('mainStep').innerText = steps[currentStep];
-}
-
-function nextStep() {
-  if (currentStep < steps.length - 1) {
-    currentStep++;
-    updateMainStep();
-  }
-}
-
-function prevStep() {
-  if (currentStep > 0) {
-    currentStep--;
-    updateMainStep();
-  }
-}
-
-function exportRecord() {
-  const killed = document.getElementById('killedPlayer').value;
-  const saved = document.getElementById('savedPlayer').value;
-  const seer = document.getElementById('seerResult').value;
-  const voted = document.getElementById('votedOutPlayer').value;
-  const note = document.getElementById('freeNote').value;
-
-  const content = `
-被殺玩家: ${killed}
-被救玩家: ${saved}
-預言家查驗結果: ${seer}
-投票出局玩家: ${voted}
-自由備註:
-${note}
-  `.trim();
-
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = "狼人殺主持紀錄.txt";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
+createSections();
 </script>
 
 </body>
