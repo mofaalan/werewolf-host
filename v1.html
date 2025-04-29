@@ -60,6 +60,31 @@
     </div>
   </div>
 
-  <script src="script.js" defer></script>
+  <script>
+    window.setupNightFlow = function () {
+      const check = (label) => Array.from(document.querySelectorAll('.role-checkbox:checked')).some(cb => cb.value.includes(label));
+      const steps = [];
+
+      // 確保狼人先開眼
+      if (check("狼人")) {
+        steps.push({ role: "狼人", wakeText: "狼人請睜眼，請相互確認你的同伴", closeText: "狼王請示意" });
+        steps.push({ role: "狼人", wakeText: "狼人請指示要刀的玩家", closeText: "狼人請閉眼" });
+      }
+
+      if (check("預言家")) steps.push({ role: "預言家", wakeText: "預言家請睜眼，請執行你的技能", closeText: "預言家請閉眼" });
+      if (check("女巫")) steps.push({ role: "女巫", wakeText: "女巫請睜眼，請執行你的技能", closeText: "女巫請閉眼" });
+      if (check("守衛")) steps.push({ role: "守衛", wakeText: "守衛請睜眼，請選擇守護目標", closeText: "守衛請閉眼" });
+      if (check("獵人")) steps.push({ role: "獵人", wakeText: "獵人請睜眼確認身份（無需操作）", closeText: "獵人請閉眼" });
+      if (check("騎士")) steps.push({ role: "騎士", wakeText: "騎士請睜眼確認身份（無需操作）", closeText: "騎士請閉眼" });
+      if (check("白癡")) steps.push({ role: "白癡", wakeText: "白癡請睜眼確認身份（無需操作）", closeText: "白癡請閉眼" });
+      if (check("老流氓")) steps.push({ role: "老流氓", wakeText: "老流氓請睜眼確認身份（無需操作）", closeText: "老流氓請閉眼" });
+      if (check("隱狼")) steps.push({ role: "隱狼", wakeText: "隱狼請睜眼確認身份（無需操作）", closeText: "隱狼請閉眼" });
+      if (check("惡靈騎士")) steps.push({ role: "惡靈騎士", wakeText: "惡靈騎士請睜眼確認身份（無需操作）", closeText: "惡靈騎士請閉眼" });
+      if (check("野孩子")) steps.push({ role: "野孩子", wakeText: "野孩子請睜眼並選擇模仿對象", closeText: "野孩子請閉眼" });
+      if (check("炸彈人")) steps.push({ role: "炸彈人", wakeText: "炸彈人請睜眼確認身份（無需操作）", closeText: "炸彈人請閉眼" });
+
+      window.dynamicFlowSteps = steps;
+    }
+  </script>
 </body>
 </html>
