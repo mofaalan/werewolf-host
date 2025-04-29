@@ -111,7 +111,11 @@
   <h2>玩家身份方塊</h2>
   <div class="player-area" id="playerList"></div>
 </div>
-
+<!-- 流程控制按鈕區 -->
+<div class="buttons" id="flowControlArea" style="display:none; margin-top: 2rem;">
+  <button onclick="prevFlowStep()">⬅️ 上一步</button>
+  <button onclick="nextFlowStep()">➡️ 下一步</button>
+</div>
 <script>
 // 流程步驟定義（含狼人刀人、預言家、女巫、守衛、天亮、白天、投票）
 const flowSteps = [
@@ -280,6 +284,28 @@ function startGame() {
     playerList.appendChild(div);
   }
   updateFlowTip();
+}
+  // 顯示流程控制按鈕區
+function showFlowControl() {
+  document.getElementById('flowControlArea').style.display = 'flex';
+}
+
+// 按下開始遊戲時，同時顯示流程按鈕
+function startGame() {
+  document.getElementById('playerArea').style.display = 'block';
+  const playerList = document.getElementById('playerList');
+  playerList.innerHTML = '';
+  let totalPlayers = selectedRoles.reduce((acc, cur) => acc + cur.count, 0);
+  for (let i = 1; i <= totalPlayers; i++) {
+    const div = document.createElement('div');
+    div.className = 'player-item';
+    div.innerText = 玩家${i};
+    div.dataset.player = i;
+    div.onclick = () => assignRole(div);
+    playerList.appendChild(div);
+  }
+  updateFlowTip();
+  showFlowControl(); // ✅ 加呢句：顯示上下步按鈕
 }
 </script>
 
