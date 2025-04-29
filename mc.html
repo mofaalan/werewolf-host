@@ -176,19 +176,19 @@ function createSections() {
   for (const [camp, roleList] of Object.entries(roles)) {
     const section = document.createElement('div');
     section.className = 'section';
-    section.innerHTML = <div class="section-header" onclick="toggleSection(this)">${camp}</div><div class="section-content"></div>;
+    section.innerHTML = `<div class="section-header" onclick="toggleSection(this)">${camp}</div><div class="section-content"></div>`;
     const content = section.querySelector('.section-content');
     roleList.forEach(role => {
       const roleDiv = document.createElement('div');
       roleDiv.className = 'role-item';
-      roleDiv.innerHTML = <span>${role}</span>;
+      roleDiv.innerHTML = `<span>${role}</span>`;
       if (role === "狼人" || role === "平民") {
         const counter = document.createElement('div');
         counter.className = 'counter';
-        counter.innerHTML = <button onclick="changeCount(this, -1, '${role}')">-</button><span>0</span><button onclick="changeCount(this, 1, '${role}')">+</button>;
+        counter.innerHTML = `<button onclick="changeCount(this, -1, '${role}')">-</button><span>0</span><button onclick="changeCount(this, 1, '${role}')">+</button>`;
         roleDiv.appendChild(counter);
       } else {
-        roleDiv.setAttribute('onclick', selectRole(this, '${camp}', '${role}'));
+        roleDiv.setAttribute('onclick', `selectRole(this, '${camp}', '${role}')`);
       }
       content.appendChild(roleDiv);
     });
