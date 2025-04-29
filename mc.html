@@ -132,11 +132,11 @@ function createSections() {
       if (role === "狼人" || role === "平民") {
         const counter = document.createElement('div');
         counter.className = 'counter';
-        counter.innerHTML = \`
-          <button onclick="changeCount(this, -1, '\${role}')">-</button>
+        counter.innerHTML = `
+          <button onclick="changeCount(this, -1, '${role}')">-</button>
           <span>0</span>
-          <button onclick="changeCount(this, 1, '\${role}')">+</button>
-        \`;
+          <button onclick="changeCount(this, 1, '${role}')">+</button>
+        `;
         roleDiv.appendChild(counter);
       } else {
         roleDiv.setAttribute('onclick', \`selectRole(this, '\${camp}', '\${role}')\`);
