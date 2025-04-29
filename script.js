@@ -42,10 +42,18 @@ window.addEventListener('DOMContentLoaded', () => {
     const check = (label) => Array.from(document.querySelectorAll('.role-checkbox:checked')).some(cb => cb.value.includes(label));
     const steps = [];
 
-    if (check("狼人") || check("狼王")) {
+    const hasWolf = check("狼人") || check("狼王");
+    const wolfRoles = [];
+    document.querySelectorAll('.role-checkbox:checked').forEach(cb => {
+      if (cb.value.includes("狼人")) wolfRoles.push(cb.value);
+    });
+
+    if (hasWolf) {
+      steps.push({ role: "狼人身份確認", wakeText: "請選擇狼人身份對應玩家（包含狼王）", closeText: "請確認完所有狼人" });
       steps.push({ role: "狼人", wakeText: "狼人請睜眼，請相互確認你的同伴", closeText: "狼王請示意" });
       steps.push({ role: "狼人", wakeText: "狼人請指示要刀的玩家", closeText: "狼人請閉眼" });
     }
+
     if (check("預言家")) steps.push({ role: "預言家", wakeText: "預言家請睜眼，請執行你的技能", closeText: "預言家請閉眼" });
     if (check("女巫")) steps.push({ role: "女巫", wakeText: "女巫請睜眼，請執行你的技能", closeText: "女巫請閉眼" });
     if (check("守衛")) steps.push({ role: "守衛", wakeText: "守衛請睜眼，請選擇守護目標", closeText: "守衛請閉眼" });
