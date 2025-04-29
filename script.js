@@ -14,6 +14,7 @@ window.addEventListener('DOMContentLoaded', () => {
   let dynamicFlowSteps = [];
   let currentIndex = 0;
   let playerList = [];
+  window.confirmedIdentities = {};
 
   confirmPlayersBtn.onclick = () => {
     const count = parseInt(playerCountInput.value);
@@ -41,12 +42,10 @@ window.addEventListener('DOMContentLoaded', () => {
     const check = (label) => Array.from(document.querySelectorAll('.role-checkbox:checked')).some(cb => cb.value.includes(label));
     const steps = [];
 
-    // 優先加入狼人
-    if (check("狼人")) {
+    if (check("狼人") || check("狼王")) {
       steps.push({ role: "狼人", wakeText: "狼人請睜眼，請相互確認你的同伴", closeText: "狼王請示意" });
       steps.push({ role: "狼人", wakeText: "狼人請指示要刀的玩家", closeText: "狼人請閉眼" });
     }
-
     if (check("預言家")) steps.push({ role: "預言家", wakeText: "預言家請睜眼，請執行你的技能", closeText: "預言家請閉眼" });
     if (check("女巫")) steps.push({ role: "女巫", wakeText: "女巫請睜眼，請執行你的技能", closeText: "女巫請閉眼" });
     if (check("守衛")) steps.push({ role: "守衛", wakeText: "守衛請睜眼，請選擇守護目標", closeText: "守衛請閉眼" });
@@ -100,7 +99,16 @@ window.addEventListener('DOMContentLoaded', () => {
       const btn = document.createElement("button");
       btn.textContent = p;
       btn.className = "bg-gray-700 px-3 py-1 rounded-lg hover:bg-gray-500";
-      btn.onclick = () => btn.classList.toggle("bg-green-500");
+
+      if (window.confirmedIdentities[step.role]?.includes(p)) {
+        btn.classList.add("bg-green-500", "border", "border-yellow-300");
+        btn.innerHTML = `${p}<br><small>${step.role}</small>`;
+      }
+
+      btn.onclick = () => {
+        btn.classList.toggle("bg-green-500");
+      };
+
       selectionDiv.appendChild(btn);
     });
 
@@ -110,12 +118,11 @@ window.addEventListener('DOMContentLoaded', () => {
     confirmBtn.onclick = () => {
       const selected = Array.from(selectionDiv.children)
         .filter(b => b.classList.contains("bg-green-500"))
-        .map(b => b.textContent);
+        .map(b => b.textContent.replace(/\n.*$/, ''));
       if (selected.length === 0) {
         alert("請至少選擇一位玩家作為此角色持有者");
         return;
       }
-      if (!window.confirmedIdentities) window.confirmedIdentities = {};
       window.confirmedIdentities[step.role] = selected;
       alert(`✔️ ${step.role} 身份記錄完成：${selected.join(", ")}`);
       nextStepBtn.click();
