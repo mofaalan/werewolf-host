@@ -50,6 +50,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
     if (hasWolf) {
       steps.push({ role: "狼人身份確認", wakeText: "請選擇狼人身份對應玩家（包含狼王）", closeText: "請確認完所有狼人" });
+      if (check("狼王")) {
+        steps.push({ role: "狼王", wakeText: "請指定誰是狼王", closeText: "狼王身份確認完成" });
+      }
       steps.push({ role: "狼人", wakeText: "狼人請睜眼，請相互確認你的同伴", closeText: "狼王請示意" });
       steps.push({ role: "狼人", wakeText: "狼人請指示要刀的玩家", closeText: "狼人請閉眼" });
     }
