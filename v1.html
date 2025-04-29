@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -20,15 +19,15 @@
       <div class="flex flex-col gap-2">
         <div class="flex items-center gap-2">
           <span>狼人</span>
-          <button class="bg-gray-700 px-2" onclick="adjustRole('狼人', -1)">-</button>
+          <button id="wolf-minus" class="bg-gray-700 px-2">-</button>
           <span id="狼人-count">0</span>
-          <button class="bg-gray-700 px-2" onclick="adjustRole('狼人', 1)">+</button>
+          <button id="wolf-plus" class="bg-gray-700 px-2">+</button>
         </div>
         <div class="flex items-center gap-2">
           <span>平民</span>
-          <button class="bg-gray-700 px-2" onclick="adjustRole('平民', -1)">-</button>
+          <button id="villager-minus" class="bg-gray-700 px-2">-</button>
           <span id="平民-count">0</span>
-          <button class="bg-gray-700 px-2" onclick="adjustRole('平民', 1)">+</button>
+          <button id="villager-plus" class="bg-gray-700 px-2">+</button>
         </div>
         <div class="flex flex-col gap-1">
           <label><input type="checkbox" class="role-checkbox" value="預言家"> 預言家</label>
