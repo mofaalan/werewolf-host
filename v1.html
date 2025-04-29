@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>狼人殺法官助手</title>
-  <script defer src="script.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col items-center p-4">
   <header class="text-2xl font-bold mb-4">狼人殺法官助手</header>
 
-  <!-- 身份設定區 -->
   <div id="setup" class="w-full flex flex-col gap-2">
     <label for="playerCount" class="text-lg">請輸入玩家人數：</label>
     <input id="playerCount" type="number" min="5" max="20" class="text-black p-2 rounded-md" placeholder="例如：12">
@@ -50,12 +48,8 @@
     </div>
   </div>
 
-  <!-- 狀態提示區 -->
-  <div id="status" class="w-full bg-gray-800 p-3 rounded-xl mb-4 text-center text-yellow-300 hidden">
-    請按「開始夜晚流程」開始主持流程
-  </div>
+  <div id="status" class="w-full bg-gray-800 p-3 rounded-xl mb-4 text-center text-yellow-300 hidden"></div>
 
-  <!-- 操作控制區 -->
   <div id="controls" class="w-full flex flex-col gap-2 hidden">
     <button id="startNight" class="bg-blue-600 p-3 rounded-xl">🌙 開始夜晚流程</button>
     <div id="flowZone" class="hidden">
@@ -67,98 +61,6 @@
     </div>
   </div>
 
-<script>
-let currentIndex = 0;
-let roleCounts = { "狼人": 0, "平民": 0 };
-const selectedRoles = new Set();
-let dynamicFlowSteps = [];
-
-const setupDiv = document.getElementById('setup');
-const playerCountInput = document.getElementById('playerCount');
-const confirmPlayersBtn = document.getElementById('confirmPlayers');
-const roleSelectionDiv = document.getElementById('roleSelection');
-const confirmRolesBtn = document.getElementById('confirmRoles');
-const startNightBtn = document.getElementById('startNight');
-const flowZone = document.getElementById('flowZone');
-const currentStepDiv = document.getElementById('currentStep');
-const statusDiv = document.getElementById('status');
-const prevStepBtn = document.getElementById('prevStep');
-const nextStepBtn = document.getElementById('nextStep');
-const controlsDiv = document.getElementById('controls');
-
-const standardWakeOrder = [
-  { role: "野孩子", wakeText: "野孩子請睜眼，請選擇你要模仿的對象。", closeText: "野孩子請閉眼。" },
-  { role: "狼人", wakeText: "狼人請睜眼，請認識彼此，今晚選擇襲擊對象。", closeText: "狼人請閉眼。" },
-  { role: "狼王", wakeText: "狼王請睜眼，請認識其他狼人。", closeText: "狼王請閉眼。" },
-  { role: "隱狼", wakeText: "隱狼請睜眼，請記住你是隱狼。", closeText: "隱狼請閉眼。" },
-  { role: "惡靈騎士", wakeText: "惡靈騎士請睜眼，請確認今晚是否被選為襲擊目標。", closeText: "惡靈騎士請閉眼。" },
-  { role: "預言家", wakeText: "預言家請睜眼，請查驗一名玩家的身份。", closeText: "預言家請閉眼。" },
-  { role: "女巫", wakeText: "女巫請睜眼，今晚有人死亡，你要使用解藥嗎？要不要用毒藥？", closeText: "女巫請閉眼。" },
-  { role: "守衛", wakeText: "守衛請睜眼，今晚你要守護哪位玩家？", closeText: "守衛請閉眼。" }
-];
-
-confirmPlayersBtn.addEventListener('click', () => {
-  const count = parseInt(playerCountInput.value);
-  if (!count || count < 5 || count > 20) {
-    alert('請輸入合理玩家人數（5-20人）');
-    return;
-  }
-  roleSelectionDiv.classList.remove('hidden');
-});
-
-function adjustRole(role, change) {
-  roleCounts[role] = Math.max(0, roleCounts[role] + change);
-  document.getElementById(role + '-count').textContent = roleCounts[role];
-}
-
-confirmRolesBtn.addEventListener('click', () => {
-  const playerCount = parseInt(playerCountInput.value);
-  const checkboxes = document.querySelectorAll('.role-checkbox');
-  selectedRoles.clear();
-  checkboxes.forEach(cb => { if (cb.checked) selectedRoles.add(cb.value); });
-  const totalRoles = roleCounts['狼人'] + roleCounts['平民'] + selectedRoles.size;
-
-  if (totalRoles !== playerCount) {
-    alert(`角色總數 (${totalRoles}) 與玩家人數 (${playerCount}) 不符，請重新確認。`);
-    return;
-  }
-  dynamicFlowSteps = standardWakeOrder.filter(step => {
-    return selectedRoles.has(step.role) || (step.role === '狼人' && roleCounts['狼人'] > 0);
-  });
-  setupDiv.classList.add('hidden');
-  controlsDiv.classList.remove('hidden');
-  statusDiv.classList.remove('hidden');
-});
-
-startNightBtn.addEventListener('click', () => {
-  startNightBtn.classList.add('hidden');
-  flowZone.classList.remove('hidden');
-  currentIndex = 0;
-  showCurrentStep();
-});
-
-prevStepBtn.addEventListener('click', () => {
-  if (currentIndex > 0) {
-    currentIndex--;
-    showCurrentStep();
-  }
-});
-
-nextStepBtn.addEventListener('click', () => {
-  if (currentIndex < dynamicFlowSteps.length - 1) {
-    currentIndex++;
-    showCurrentStep();
-  } else {
-    statusDiv.textContent = "🌅 夜晚流程結束，請進入白天階段！";
-    flowZone.classList.add('hidden');
-  }
-});
-
-function showCurrentStep() {
-  const step = dynamicFlowSteps[currentIndex];
-  currentStepDiv.innerHTML = `👁️‍🗨️ <strong>${step.role}</strong>：<br>${step.wakeText}<br><span class="text-gray-400">${step.closeText}</span>`;
-  statusDiv.textContent = `目前進行：${step.role}`;
-}
-</script>
+  <script src="script.js" defer></script>
 </body>
 </html>
