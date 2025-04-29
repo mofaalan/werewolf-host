@@ -83,6 +83,7 @@
 </head>
 <body>
 
+<!-- MC流程提示區 -->
 <div id="mcFlowTip">
   <div id="mainFlowStep">流程即將開始，請等待主持指示！</div>
   <div id="flowDetail">請準備好發放角色卡及指示玩家閉眼</div>
@@ -90,62 +91,120 @@
 
 <h1>🐺 狼人殺主持控制台（三欄版 - 正式版）</h1>
 
+<!-- 角色選擇區 -->
 <div id="sections"></div>
 
+<!-- 鎖定角色按鈕 -->
 <div class="buttons">
   <label>
     <input type="checkbox" id="lockToggle" onchange="toggleLock()"> 🔒 鎖定角色設定
   </label>
 </div>
 
+<!-- 開始遊戲按鈕 -->
 <div class="buttons" id="startGameButton" style="display:none;">
   <button onclick="startGame()">開始玩家查看身份</button>
 </div>
 
+<!-- 玩家身份方格區 -->
 <div class="section" id="playerArea" style="display:none;">
   <h2>玩家身份方塊</h2>
   <div class="player-area" id="playerList"></div>
 </div>
 
 <script>
+// 流程步驟定義（含狼人刀人、預言家、女巫、守衛、天亮、白天、投票）
+const flowSteps = [
+  { role: "狼人", main: "狼人請睜眼", detail: "請MC等待所有狼人睜眼並互認，之後示意閉眼" },
+  { role: "狼人刀人", main: "狼人選擇刀人", detail: "請MC點擊被狼人殺害的目標玩家" },
+  { role: "預言家", main: "預言家請睜眼", detail: "請MC等待預言家完成查驗，再示意閉眼" },
+  { role: "女巫", main: "女巫請睜眼", detail: "請MC詢問女巫是否使用解藥或毒藥" },
+  { role: "守衛", main: "守衛請睜眼", detail: "請MC指引守衛選擇守護對象" },
+  { role: null, main: "天亮了", detail: "請MC宣布昨晚死亡情況，並引導遺言" },
+  { role: null, main: "白天發言階段", detail: "請MC引導玩家依序發言" },
+  { role: null, main: "投票出局", detail: "請MC引導玩家投票，標記被出局者" },
+  { role: null, main: "遊戲繼續", detail: "天黑請閉眼，進入下一晚" }
+];
+
+// 狀態變數
+let currentFlowStep = 0;
+let assignedRoles = {};  // 玩家編號對應角色
+let selectedRoles = [];  // 出場角色配置
+let locked = false;
+let killedPlayer = null;
+let savedPlayer = null;
+let guardedPlayer = null;
+let nightmareTarget = null;
+let lastGuardedPlayer = null;
+let brotherPlayer = null; // 野孩子認的哥哥
+let wildChildPlayer = null; // 野孩子本人
+let wildChildConverted = false;
+
+// 更新流程提示與語音
+function updateFlowTip() {
+  document.getElementById('mainFlowStep').innerText = flowSteps[currentFlowStep].main;
+  document.getElementById('flowDetail').innerText = flowSteps[currentFlowStep].detail;
+  speak(flowSteps[currentFlowStep].main + "，" + flowSteps[currentFlowStep].detail);
+}
+
+// 粵語語音播報
+function speak(text) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "zh-HK";
+  speechSynthesis.speak(utterance);
+}
+</script>
+
+<script>
+// 角色資料（狼人陣營、好人陣營、特殊陣營）
 const roles = {
-  "狼人陣營": ["狼人", "狼王", "白狼王"],
-  "好人陣營": ["預言家", "女巫", "守衛", "平民"],
-  "特殊陣營": ["野孩子"]
+  "狼人陣營": ["狼人", "狼王", "白狼王", "隱狼", "石像鬼", "血族", "惡靈騎士", "血月使徒", "狼美人", "惡夢之影", "蝕時狼妃", "狼巫", "狼鴉之爪"],
+  "好人陣營": ["預言家", "女巫", "獵人", "守衛", "騎士", "禁言長老", "定序王子", "純白之女", "守墓人", "魔術師", "獵夢者", "烏鴉", "獵魔人", "煉金魔女", "奇蹟商人", "白癡", "平民", "老流氓"],
+  "特殊陣營": ["邱比特", "野孩子", "炸彈人", "盜賊", "咒狐", "暗戀者"]
 };
 
-const maxCount = { "狼人": 3, "平民": 4 };
-let locked = false;
+// 狼人／平民可設定數量
+const maxCount = {
+  "狼人": 3,
+  "平民": 4
+};
 
+// 建立角色選擇區
 function createSections() {
   const container = document.getElementById('sections');
   container.innerHTML = '';
   for (const [camp, roleList] of Object.entries(roles)) {
     const section = document.createElement('div');
     section.className = 'section';
-    section.innerHTML = `<div class="section-header">${camp}</div><div class="section-content"></div>`;
+    section.innerHTML = <div class="section-header" onclick="toggleSection(this)">${camp}</div><div class="section-content"></div>;
     const content = section.querySelector('.section-content');
     roleList.forEach(role => {
       const roleDiv = document.createElement('div');
       roleDiv.className = 'role-item';
-      roleDiv.innerHTML = `<span>${role}</span>`;
+      roleDiv.innerHTML = <span>${role}</span>;
       if (role === "狼人" || role === "平民") {
         const counter = document.createElement('div');
         counter.className = 'counter';
-        counter.innerHTML = `
-          <button onclick="changeCount(this, -1, '${role}')">-</button>
-          <span>0</span>
-          <button onclick="changeCount(this, 1, '${role}')">+</button>
-        `;
+        counter.innerHTML = <button onclick="changeCount(this, -1, '${role}')">-</button><span>0</span><button onclick="changeCount(this, 1, '${role}')">+</button>;
         roleDiv.appendChild(counter);
       } else {
-        roleDiv.setAttribute('onclick', \`selectRole(this, '\${camp}', '\${role}')\`);
+        roleDiv.setAttribute('onclick', selectRole(this, '${camp}', '${role}'));
       }
       content.appendChild(roleDiv);
     });
     container.appendChild(section);
   }
 }
+
+// 展開/收起陣營欄位
+function toggleSection(header) {
+  const all = document.querySelectorAll('.section-content');
+  all.forEach(s => s.style.display = 'none');
+  const content = header.nextElementSibling;
+  content.style.display = 'grid';
+}
+
+// 狼人／平民改變數量
 function changeCount(button, delta, roleName) {
   if (locked) return;
   const span = button.parentNode.querySelector('span');
@@ -153,18 +212,185 @@ function changeCount(button, delta, roleName) {
   if (val < 0) val = 0;
   if (val > maxCount[roleName]) val = maxCount[roleName];
   span.innerText = val;
+  updateCounts();
 }
+
+// 其他角色選取
 function selectRole(div, camp, roleName) {
   if (locked) return;
-  div.classList.toggle('assigned');
-  div.dataset.selected = div.dataset.selected === "true" ? "false" : "true";
+  if (div.dataset.selected === "true") {
+    div.style.backgroundColor = "#444";
+    div.dataset.selected = "false";
+  } else {
+    div.style.backgroundColor = (camp === "狼人陣營") ? "#e74c3c" : (camp === "好人陣營") ? "#f1c40f" : "#8e44ad";
+    div.dataset.selected = "true";
+  }
+  updateCounts();
 }
+
+// 更新選取人數統計
+function updateCounts() {
+  const sections = document.querySelectorAll('.section');
+  sections.forEach(section => {
+    const roles = section.querySelectorAll('.role-item');
+    let count = 0;
+    roles.forEach(role => {
+      if (role.querySelector('.counter')) {
+        count += parseInt(role.querySelector('.counter span').innerText);
+      } else if (role.dataset.selected === "true") {
+        count += 1;
+      }
+    });
+    const header = section.querySelector('.section-header');
+    if (header) header.innerHTML = header.innerHTML.split(' ')[0] +  (${count}人);
+  });
+}
+
+// 鎖定選擇角色
 function toggleLock() {
-  locked = document.getElementById('lockToggle').checked;
+  if (document.getElementById('lockToggle').checked) {
+    locked = true;
+    selectedRoles = [];
+    document.querySelectorAll('.role-item').forEach(item => {
+      const role = item.querySelector('span').innerText;
+      const count = item.querySelector('.counter') ? parseInt(item.querySelector('.counter span').innerText) : (item.dataset.selected === "true" ? 1 : 0);
+      if (count > 0) selectedRoles.push({ role, count });
+      else item.style.display = 'none';
+    });
+    document.getElementById('startGameButton').style.display = 'flex';
+  } else {
+    locked = false;
+    document.getElementById('startGameButton').style.display = 'none';
+    createSections();
+  }
 }
-window.onload = () => {
-  createSections();
-};
+
+// 生成玩家身份格子
+function startGame() {
+  document.getElementById('playerArea').style.display = 'block';
+  const playerList = document.getElementById('playerList');
+  playerList.innerHTML = '';
+  let totalPlayers = selectedRoles.reduce((acc, cur) => acc + cur.count, 0);
+  for (let i = 1; i <= totalPlayers; i++) {
+    const div = document.createElement('div');
+    div.className = 'player-item';
+    div.innerText = 玩家${i};
+    div.dataset.player = i;
+    div.onclick = () => assignRole(div);
+    playerList.appendChild(div);
+  }
+  updateFlowTip();
+}
+</script>
+
+<script>
+// 進行下一步流程
+function nextFlowStep() {
+  if (currentFlowStep < flowSteps.length - 1) {
+    if (needAssignRole() && !isAllRoleAssigned()) {
+      alert(請完成本階段（${flowSteps[currentFlowStep].role || '流程'}）操作！);
+      return;
+    }
+    currentFlowStep++;
+    updateFlowTip();
+  }
+}
+
+// 返回上一步流程
+function prevFlowStep() {
+  if (currentFlowStep > 0) {
+    currentFlowStep--;
+    updateFlowTip();
+  }
+}
+
+// 判定是否需要MC指派行動
+function needAssignRole() {
+  return flowSteps[currentFlowStep].role !== null;
+}
+
+// 檢查是否所有指派完成
+function isAllRoleAssigned() {
+  const role = flowSteps[currentFlowStep].role;
+  if (role === "狼人刀人") {
+    return killedPlayer !== null;
+  }
+  if (role === "女巫") {
+    return savedPlayer !== null;
+  }
+  if (role === "守衛") {
+    return guardedPlayer !== null;
+  }
+  if (role === "預言家") {
+    return Object.values(assignedRoles).includes("預言家查驗");
+  }
+  const total = selectedRoles.filter(r => r.role === role).reduce((acc, cur) => acc + cur.count, 0);
+  let assigned = 0;
+  for (const player in assignedRoles) {
+    if (assignedRoles[player] === role) assigned++;
+  }
+  return assigned >= total;
+}
+
+// 玩家格點擊操作
+function assignRole(div) {
+  const role = flowSteps[currentFlowStep].role;
+  const playerNo = div.dataset.player;
+
+  if (role === "狼人") {
+    div.classList.toggle('assigned');
+    assignedRoles[playerNo] = "狼人";
+  }
+  else if (role === "狼人刀人") {
+    if (assignedRoles[playerNo] === "狼人") {
+      alert("狼人不能自刀！");
+      return;
+    }
+    killedPlayer = playerNo;
+    div.classList.add('killed');
+    div.innerText += \n(被刀);
+  }
+  else if (role === "預言家") {
+    assignedRoles[playerNo] = "預言家查驗";
+    div.classList.add('assigned');
+    div.innerText += \n(被查驗);
+  }
+  else if (role === "女巫") {
+    savedPlayer = playerNo;
+    div.classList.add('assigned');
+    div.innerText += \n(被救);
+  }
+  else if (role === "守衛") {
+    if (playerNo == lastGuardedPlayer) {
+      alert("不能連續兩晚守同一玩家！");
+      return;
+    }
+    guardedPlayer = playerNo;
+    lastGuardedPlayer = playerNo;
+    div.classList.add('assigned');
+    div.innerText += \n(被守);
+  }
+}
+
+// 檢查哥哥是否死亡（野孩子轉陣營）
+function checkBrotherDeath(playerNo) {
+  if (brotherPlayer && playerNo == brotherPlayer && !wildChildConverted) {
+    wildChildConverted = true;
+    if (wildChildPlayer) {
+      const playerDivs = document.querySelectorAll('.player-item');
+      playerDivs.forEach(div => {
+        if (div.dataset.player == wildChildPlayer) {
+          div.classList.add('assigned');
+          div.style.backgroundColor = "#e74c3c"; // 變紅，狼人色
+          assignedRoles[wildChildPlayer] = "狼人"; // 系統記錄轉陣營
+          alert("哥哥死亡，野孩子已轉為狼人陣營！");
+        }
+      });
+    }
+  }
+}
+
+createSections();
 </script>
 </body>
 </html>
