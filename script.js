@@ -1,3 +1,4 @@
+// script.js
 
 window.addEventListener('DOMContentLoaded', () => {
   let playerCountInput = document.getElementById('playerCount');
@@ -12,16 +13,10 @@ window.addEventListener('DOMContentLoaded', () => {
   let prevStepBtn = document.getElementById('prevStep');
   let nextStepBtn = document.getElementById('nextStep');
 
-  let roleCounts = { 狼人: 0, 平民: 0 };
   let selectedRoles = new Set();
   let playerList = [];
   let dynamicFlowSteps = [];
   let currentIndex = 0;
-
-  function adjustRole(role, delta) {
-    roleCounts[role] = Math.max(0, (roleCounts[role] || 0) + delta);
-    document.getElementById(`${role}-count`).innerText = roleCounts[role];
-  }
 
   confirmPlayersBtn.onclick = () => {
     const count = parseInt(playerCountInput.value);
@@ -35,21 +30,21 @@ window.addEventListener('DOMContentLoaded', () => {
   confirmRolesBtn.onclick = () => {
     selectedRoles.clear();
     document.querySelectorAll(".role-checkbox:checked").forEach(cb => selectedRoles.add(cb.value));
-    const totalRoles = Object.values(roleCounts).reduce((a, b) => a + b, 0) + selectedRoles.size;
     const expectedPlayers = parseInt(playerCountInput.value);
-    if (totalRoles !== expectedPlayers) {
-      alert(`目前設定角色數量為 ${totalRoles}，與玩家人數 ${expectedPlayers} 不符。`);
+    if (selectedRoles.size !== expectedPlayers) {
+      alert(`目前設定角色數量為 ${selectedRoles.size}，與玩家人數 ${expectedPlayers} 不符。`);
       return;
     }
     setupNightFlow();
     statusDiv.classList.remove("hidden");
     controls.classList.remove("hidden");
+    statusDiv.textContent = `已設定 ${expectedPlayers} 張角色卡。`;
   };
 
   function setupNightFlow() {
     dynamicFlowSteps = [];
 
-    if (roleCounts['狼人'] > 0 || selectedRoles.has('狼王')) {
+    if (selectedRoles.has('狼人') || selectedRoles.has('狼王')) {
       dynamicFlowSteps.push({ role: "狼人", wakeText: "狼人請睜眼，請相互確認你的同伴", closeText: "狼王請示意" });
       dynamicFlowSteps.push({ role: "狼人", wakeText: "狼人請指示要刀的玩家", closeText: "狼人請閉眼" });
     }
