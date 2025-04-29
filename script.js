@@ -43,10 +43,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const steps = [];
 
     const hasWolf = check("狼人") || check("狼王");
-    const wolfRoles = [];
-    document.querySelectorAll('.role-checkbox:checked').forEach(cb => {
-      if (cb.value.includes("狼人")) wolfRoles.push(cb.value);
-    });
 
     if (hasWolf) {
       steps.push({ role: "狼人身份確認", wakeText: "請選擇狼人身份對應玩家（包含狼王）", closeText: "請確認完所有狼人" });
@@ -111,9 +107,18 @@ window.addEventListener('DOMContentLoaded', () => {
       btn.textContent = p;
       btn.className = "bg-gray-700 px-3 py-1 rounded-lg hover:bg-gray-500";
 
+      for (const role in window.confirmedIdentities) {
+        if (window.confirmedIdentities[role]?.includes(p)) {
+          btn.classList.add("bg-green-500", "border", "border-yellow-300");
+          const label = document.createElement("div");
+          label.className = "text-xs text-yellow-300";
+          label.textContent = role;
+          btn.appendChild(label);
+        }
+      }
+
       if (window.confirmedIdentities[step.role]?.includes(p)) {
         btn.classList.add("bg-green-500", "border", "border-yellow-300");
-        btn.innerHTML = `${p}<br><small>${step.role}</small>`;
       }
 
       btn.onclick = () => {
@@ -129,7 +134,7 @@ window.addEventListener('DOMContentLoaded', () => {
     confirmBtn.onclick = () => {
       const selected = Array.from(selectionDiv.children)
         .filter(b => b.classList.contains("bg-green-500"))
-        .map(b => b.textContent.replace(/\n.*$/, ''));
+        .map(b => b.textContent.replace(/\n.*/, ''));
       if (selected.length === 0) {
         alert("請至少選擇一位玩家作為此角色持有者");
         return;
