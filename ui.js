@@ -1,92 +1,136 @@
-// ui.js — 使用者介面控制模組
+// ui.js — UI 操作與顯示模組
+
 import { GameState } from './state.js';
 
-const statusDiv = document.getElementById('status');
-const currentStepDiv = document.getElementById('currentStep');
-const flowZone = document.getElementById('flowZone');
-const prevStepBtn = document.getElementById('prevStep');
-const nextStepBtn = document.getElementById('nextStep');
+const app = document.getElementById('app');
 
-function renderStep() {
-  const step = GameState.flowSteps[GameState.currentStep];
-  currentStepDiv.innerHTML = `👁️‍🗨️ <strong>${step.role}</strong><br>${step.wakeText}<br><span class="text-gray-400">${step.closeText}</span>`;
-  statusDiv.textContent = `目前進行：${step.role}`;
-
-  const playerSelect = document.createElement('div');
-  playerSelect.className = 'mt-4 flex flex-wrap gap-2';
-
-  GameState.players.forEach(p => {
+function createPlayerButtons() {
+  const container = document.createElement('div');
+  GameState.players.forEach(player => {
     const btn = document.createElement('button');
-    btn.textContent = p.id;
-    btn.className = 'bg-gray-700 px-3 py-1 rounded hover:bg-gray-500';
-
-    if (GameState.isPlayerKilled(p.id)) {
-      btn.classList.add('line-through', 'opacity-50');
-    }
-
+    btn.textContent = player.id;
+    btn.className = 'player-btn';
     btn.onclick = () => {
-      const role = step.role;
-      if (role === '狼人' && step.wakeText.includes('刀人')) {
-        GameState.killedTonight = p.id;
-      } else if (role === '女巫' && step.wakeText.includes('救')) {
-        GameState.savedByWitch = p.id;
-      } else if (role === '女巫' && step.wakeText.includes('毒')) {
-        GameState.poisonedByWitch = p.id;
-      } else if (role === '預言家' && step.wakeText.includes('查驗')) {
-        GameState.checkedBySeer = p.id;
-        const evilRoles = ['狼人', '狼王', '隱狼', '惡靈騎士'];
-        const target = GameState.players.find(x => x.id === p.id);
-        GameState.checkedResult = evilRoles.includes(target.role) ? 'evil' : 'good';
-        alert(`查驗結果：${GameState.checkedResult === 'evil' ? '👎 壞人' : '👍 好人'}`);
-      } else {
-        GameState.setRole(p.id, role);
-      }
-      renderStep();
+      document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
     };
-
-    // 顯示角色標記
-    for (const [role, ids] of Object.entries(GameState.confirmedIdentities)) {
-      if (ids.includes(p.id)) {
-        const mark = document.createElement('div');
-        mark.textContent = role;
-        mark.className = 'text-xs text-yellow-300';
-        btn.appendChild(mark);
-      }
-    }
-
-    playerSelect.appendChild(btn);
+    container.appendChild(btn);
   });
-
-  const confirmBtn = document.createElement('button');
-  confirmBtn.textContent = `✔️ 確認「${step.role}」階段完成`;
-  confirmBtn.className = 'block bg-green-600 p-2 mt-4 rounded-xl w-full';
-  confirmBtn.onclick = () => {
-    nextStepBtn.click();
-  };
-
-  currentStepDiv.appendChild(playerSelect);
-  currentStepDiv.appendChild(confirmBtn);
+  return container;
 }
 
-export function initUI() {
-  flowZone.classList.remove('hidden');
-  GameState.currentStep = 0;
-  renderStep();
+function createConfirmButton(currentRole) {
+  const btn = document.createElement('button');
+  btn.textContent = '確認';
+  btn.onclick = () => {
+    const selected = document.querySelector('.player-btn.selected');
+    if (!selected) {
+      alert('請選擇一位玩家');
+      return;
+    }
+    const playerId = selected.textContent;
+    GameState.setRole(playerId, currentRole);
+    alert(`${currentRole} 記錄完成：${playerId}`);
+    renderNextStep();
+  };
+  return btn;
+}
 
-  prevStepBtn.onclick = () => {
+function renderStep() {
+  app.innerHTML = '';
+  const step = GameState.flowSteps[GameState.currentStep];
+
+  const title = document.createElement('h2');
+  title.textContent = step.role;
+  const desc = document.createElement('p');
+  desc.textContent = step.wakeText;
+
+  const players = createPlayerButtons();
+  const confirmBtn = createConfirmButton(step.role);
+
+  const prevBtn = document.createElement('button');
+  prevBtn.textContent = '⬅ 上一步';
+  prevBtn.onclick = () => {
     if (GameState.currentStep > 0) {
       GameState.currentStep--;
       renderStep();
     }
   };
 
-  nextStepBtn.onclick = () => {
+  const nextBtn = document.createElement('button');
+  nextBtn.textContent = '下一步 ➡';
+  nextBtn.onclick = () => {
     if (GameState.currentStep < GameState.flowSteps.length - 1) {
       GameState.currentStep++;
       renderStep();
-    } else {
-      flowZone.classList.add('hidden');
-      statusDiv.textContent = '🌞 夜晚流程完畢，請進入白天流程。';
     }
   };
+
+  app.append(title, desc, players, confirmBtn, document.createElement('br'), prevBtn, nextBtn);
+}
+
+export function renderNextStep() {
+  GameState.currentStep++;
+  renderStep();
+}
+
+export function startGame() {
+  GameState.buildNightFlow();
+  renderStep();
+}
+
+export function setupPlayerCountInput() {
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = 5;
+  input.max = 20;
+  input.value = 6;
+
+  const btn = document.createElement('button');
+  btn.textContent = '確定玩家數';
+  btn.onclick = () => {
+    const count = parseInt(input.value);
+    GameState.assignPlayers(count);
+    renderRoleSelector();
+  };
+
+  app.innerHTML = '';
+  const label = document.createElement('label');
+  label.textContent = '輸入玩家人數：';
+  label.append(input);
+  app.append(label, btn);
+}
+
+function renderRoleSelector() {
+  app.innerHTML = '';
+  const title = document.createElement('h2');
+  title.textContent = '設定角色';
+  const roles = ['狼人', '狼王', '女巫', '預言家', '獵人', '守衛', '平民'];
+  const checkboxes = roles.map(role => {
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = role;
+    checkbox.checked = true;
+    label.append(checkbox, document.createTextNode(role));
+    return label;
+  });
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.textContent = '✔️ 確認角色設定';
+  confirmBtn.onclick = () => {
+    const selectedRoles = checkboxes.filter(cb => cb.querySelector('input').checked).map(cb => cb.querySelector('input').value);
+    GameState.reset();
+    GameState.assignPlayers(GameState.playerCount);
+    const baseRoles = [...selectedRoles];
+
+    // 自動補平民（數量補足）
+    while (baseRoles.length < GameState.playerCount) baseRoles.push('平民');
+
+    baseRoles.forEach((role, i) => GameState.setRole(GameState.players[i].id, role));
+    GameState.buildNightFlow();
+    renderStep();
+  };
+
+  app.append(title, ...checkboxes, document.createElement('br'), confirmBtn);
 }
