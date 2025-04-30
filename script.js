@@ -116,7 +116,14 @@ window.addEventListener('DOMContentLoaded', () => {
         btn.classList.add("bg-green-500", "border", "border-yellow-300");
         const label = document.createElement("div");
         label.className = "text-xs text-yellow-300";
-        label.textContent = matchedRoles.join(", ");
+
+        // 第三階段優化：狼王優先顯示
+        if (matchedRoles.includes("狼王")) {
+          label.textContent = "狼王";
+        } else {
+          label.textContent = matchedRoles.join(", ");
+        }
+
         btn.appendChild(label);
       }
 
@@ -148,7 +155,6 @@ window.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // 狼王指定時，也同時標記該玩家為狼人
       if (step.role === "狼王") {
         for (const role in window.confirmedIdentities) {
           if (role !== "狼王" && role !== "狼人身份確認") {
