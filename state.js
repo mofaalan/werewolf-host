@@ -9,8 +9,11 @@ export const GameState = {
 
   assignPlayers(count) {
     this.players = [];
+    this.playerRoles = {};
     for (let i = 1; i <= count; i++) {
-      this.players.push({ id: `玩家${i}` });
+      const id = `玩家${i}`;
+      this.players.push({ id });
+      this.playerRoles[id] = []; // 初始化每位玩家角色清單
     }
   },
 
@@ -21,6 +24,10 @@ export const GameState = {
     if (!this.playerRoles[playerId].includes(role)) {
       this.playerRoles[playerId].push(role);
     }
+  },
+
+  getRoles(playerId) {
+    return this.playerRoles[playerId] || [];
   },
 
   reset() {
