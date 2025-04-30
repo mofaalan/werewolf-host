@@ -47,10 +47,10 @@ window.addEventListener('DOMContentLoaded', () => {
     if (hasWolf) {
       steps.push({ role: "狼人身份確認", wakeText: "請選擇狼人身份對應玩家（包含狼王）", closeText: "請確認完所有狼人" });
       if (check("狼王")) {
-        steps.push({ role: "狼王", wakeText: "請指定誰是狼王", closeText: "狼王身份確認完成" });
+        steps.push({ role: "狼王身份確認", wakeText: "請指定誰是狼王", closeText: "狼王身份確認完成" });
       }
-      steps.push({ role: "狼人", wakeText: "狼人請睜眼，請相互確認你的同伴", closeText: "狼王請示意" });
-      steps.push({ role: "狼人", wakeText: "狼人請指示要刀的玩家", closeText: "狼人請閉眼" });
+      steps.push({ role: "狼人行動", wakeText: "狼人請睜眼，請相互確認你的同伴", closeText: "狼王請示意" });
+      steps.push({ role: "狼人刀人", wakeText: "狼人請指示要刀的玩家", closeText: "狼人請閉眼" });
     }
 
     if (check("預言家")) steps.push({ role: "預言家", wakeText: "預言家請睜眼，請執行你的技能", closeText: "預言家請閉眼" });
@@ -121,7 +121,7 @@ window.addEventListener('DOMContentLoaded', () => {
       }
 
       btn.onclick = () => {
-        if (step.role === "狼王") {
+        if (step.role.includes("狼王")) {
           Array.from(selectionDiv.children).forEach(b => b.classList.remove("bg-green-500"));
           window.confirmedIdentities["狼王"] = [];
         }
@@ -143,15 +143,14 @@ window.addEventListener('DOMContentLoaded', () => {
         alert("請至少選擇一位玩家作為此角色持有者");
         return;
       }
-      if (step.role === "狼王" && selected.length > 1) {
+      if (step.role.includes("狼王") && selected.length > 1) {
         alert("狼王只能指定一名玩家");
         return;
       }
 
-      if (!window.confirmedIdentities[step.role]) window.confirmedIdentities[step.role] = [];
       window.confirmedIdentities[step.role] = selected;
 
-      if (step.role === "狼王") {
+      if (step.role === "狼王身份確認") {
         const wolfList = window.confirmedIdentities["狼人身份確認"] || [];
         const wolfKing = selected[0];
         if (!wolfList.includes(wolfKing)) wolfList.push(wolfKing);
