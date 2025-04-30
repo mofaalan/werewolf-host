@@ -148,19 +148,24 @@ window.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // 移除其他角色身份中的此玩家（避免同時是狼人與狼王）
+      // 狼王指定時，也同時標記該玩家為狼人
       if (step.role === "狼王") {
         for (const role in window.confirmedIdentities) {
-          if (role !== "狼王") {
+          if (role !== "狼王" && role !== "狼人身份確認") {
             window.confirmedIdentities[role] = window.confirmedIdentities[role].filter(p => !selected.includes(p));
           }
         }
+        if (!window.confirmedIdentities["狼人身份確認"]) window.confirmedIdentities["狼人身份確認"] = [];
+        selected.forEach(p => {
+          if (!window.confirmedIdentities["狼人身份確認"].includes(p)) {
+            window.confirmedIdentities["狼人身份確認"].push(p);
+          }
+        });
       }
 
       if (!window.confirmedIdentities[step.role]) window.confirmedIdentities[step.role] = [];
       window.confirmedIdentities[step.role] = selected;
 
-      // 自動補上平民身份（流程結束階段）
       if (step.role === "炸彈人" || currentIndex === dynamicFlowSteps.length - 1) {
         const allRoles = Object.values(window.confirmedIdentities).flat();
         const remaining = playerList.filter(p => !allRoles.includes(p));
