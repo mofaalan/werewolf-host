@@ -104,6 +104,7 @@ export function setupPlayerCountInput() {
   btn.textContent = '確定玩家數';
   btn.onclick = () => {
     const count = parseInt(input.value);
+    GameState.playerCount = count; // 🔧 補上初始化
     GameState.assignPlayers(count);
     renderRoleSelector();
   };
