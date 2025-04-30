@@ -2,44 +2,23 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>狼人殺法官助手 V2</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { background: #111; color: #fff; font-family: sans-serif; padding: 20px; }
+    h2 { font-size: 2em; }
+    button { margin: 5px; padding: 8px 12px; font-size: 1em; }
+    .player-btn { margin: 3px; padding: 6px 10px; background: #444; color: #fff; border: none; cursor: pointer; }
+    .player-btn.selected { background: green; }
+    .player-btn.marked { background: gold; color: black; font-weight: bold; }
+    .box { background: #222; padding: 20px; margin-top: 10px; border-radius: 8px; }
+  </style>
 </head>
 <body>
-  <header>
-    <h1>狼人殺法官助手 V2</h1>
-  </header>
+  <div id="app"></div>
 
-  <main>
-    <section id="setup">
-      <label for="playerCount">輸入玩家人數：</label>
-      <input type="number" id="playerCount" min="5" max="20" />
-      <button id="setPlayersBtn">確定玩家數</button>
-    </section>
-
-    <section id="roleSelection" class="hidden">
-      <h2>設定角色</h2>
-      <div id="roleArea"></div>
-      <button id="confirmRolesBtn">✔️ 確認角色設定</button>
-    </section>
-
-    <section id="flow" class="hidden">
-      <div id="flowText"></div>
-      <div id="playerButtons"></div>
-      <button id="confirmActionBtn">確認</button>
-      <div id="flowControl">
-        <button id="prevStepBtn">⬅️ 上一步</button>
-        <button id="nextStepBtn">➡️ 下一步</button>
-      </div>
-    </section>
-  </main>
-
-  <script type="module" src="ui.js"></script>
-<script type="module">
-  import { setupPlayerCountInput } from './ui.js';
-  setupPlayerCountInput();
-</script>
-
+  <script type="module">
+    import { setupPlayerCountInput } from './ui.js';
+    setupPlayerCountInput();
+  </script>
 </body>
 </html>
