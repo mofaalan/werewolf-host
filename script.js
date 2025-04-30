@@ -148,6 +148,16 @@ window.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // 移除其他角色身份中的此玩家（避免同時是狼人與狼王）
+      if (step.role === "狼王") {
+        for (const role in window.confirmedIdentities) {
+          if (role !== "狼王") {
+            window.confirmedIdentities[role] = window.confirmedIdentities[role].filter(p => !selected.includes(p));
+          }
+        }
+      }
+
+      if (!window.confirmedIdentities[step.role]) window.confirmedIdentities[step.role] = [];
       window.confirmedIdentities[step.role] = selected;
 
       // 自動補上平民身份（流程結束階段）
