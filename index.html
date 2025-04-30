@@ -3,64 +3,38 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>狼人殺法官助手</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <title>狼人殺法官助手 V2</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center p-4">
-  <header class="text-2xl font-bold mb-4">狼人殺法官助手</header>
+<body>
+  <header>
+    <h1>狼人殺法官助手 V2</h1>
+  </header>
 
-  <div id="setup" class="w-full flex flex-col gap-2">
-    <label for="playerCount" class="text-lg">請輸入玩家人數：</label>
-    <input id="playerCount" type="number" min="5" max="20" class="text-black p-2 rounded-md" placeholder="例如：12">
-    <button id="confirmPlayers" class="bg-purple-600 p-3 rounded-xl">確定玩家人數並設定角色</button>
+  <main>
+    <section id="setup">
+      <label for="playerCount">輸入玩家人數：</label>
+      <input type="number" id="playerCount" min="5" max="20" />
+      <button id="setPlayersBtn">確定玩家數</button>
+    </section>
 
-    <div id="roleSelection" class="mt-4 hidden">
-      <h2 class="text-xl font-semibold mb-2">選擇出場角色卡：</h2>
-      <div class="flex flex-col gap-2">
-        <div class="flex items-center gap-2">
-          <span>狼人</span>
-          <button class="bg-gray-700 px-2" onclick="adjustRole('狼人', -1)">-</button>
-          <span id="狼人-count">0</span>
-          <button class="bg-gray-700 px-2" onclick="adjustRole('狼人', 1)">+</button>
-        </div>
-        <div class="flex items-center gap-2">
-          <span>平民</span>
-          <button class="bg-gray-700 px-2" onclick="adjustRole('平民', -1)">-</button>
-          <span id="平民-count">0</span>
-          <button class="bg-gray-700 px-2" onclick="adjustRole('平民', 1)">+</button>
-        </div>
-        <div class="flex flex-col gap-1">
-          <label><input type="checkbox" class="role-checkbox" value="預言家"> 預言家</label>
-          <label><input type="checkbox" class="role-checkbox" value="女巫"> 女巫</label>
-          <label><input type="checkbox" class="role-checkbox" value="守衛"> 守衛</label>
-          <label><input type="checkbox" class="role-checkbox" value="獵人"> 獵人</label>
-          <label><input type="checkbox" class="role-checkbox" value="狼王"> 狼王</label>
-          <label><input type="checkbox" class="role-checkbox" value="隱狼"> 隱狼</label>
-          <label><input type="checkbox" class="role-checkbox" value="惡靈騎士"> 惡靈騎士</label>
-          <label><input type="checkbox" class="role-checkbox" value="白癡"> 白癡</label>
-          <label><input type="checkbox" class="role-checkbox" value="老流氓"> 老流氓</label>
-          <label><input type="checkbox" class="role-checkbox" value="騎士"> 騎士</label>
-          <label><input type="checkbox" class="role-checkbox" value="野孩子"> 野孩子</label>
-          <label><input type="checkbox" class="role-checkbox" value="炸彈人"> 炸彈人</label>
-        </div>
+    <section id="roleSelection" class="hidden">
+      <h2>設定角色</h2>
+      <div id="roleArea"></div>
+      <button id="confirmRolesBtn">✔️ 確認角色設定</button>
+    </section>
+
+    <section id="flow" class="hidden">
+      <div id="flowText"></div>
+      <div id="playerButtons"></div>
+      <button id="confirmActionBtn">確認</button>
+      <div id="flowControl">
+        <button id="prevStepBtn">⬅️ 上一步</button>
+        <button id="nextStepBtn">➡️ 下一步</button>
       </div>
-      <button id="confirmRoles" class="bg-green-600 p-3 mt-4 rounded-xl">✔️ 確認角色卡設定</button>
-    </div>
-  </div>
+    </section>
+  </main>
 
-  <div id="status" class="w-full bg-gray-800 p-3 rounded-xl mb-4 text-center text-yellow-300 hidden"></div>
-
-  <div id="controls" class="w-full flex flex-col gap-2 hidden">
-    <button id="startNight" class="bg-blue-600 p-3 rounded-xl">🌙 開始夜晚流程</button>
-    <div id="flowZone" class="hidden">
-      <div id="currentStep" class="text-lg mb-2"></div>
-      <div class="flex justify-between">
-        <button id="prevStep" class="bg-gray-700 px-4 py-2 rounded-lg">⬅️ 上一步</button>
-        <button id="nextStep" class="bg-green-600 px-4 py-2 rounded-lg">➡️ 下一步</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="script.js" defer></script>
+  <script type="module" src="ui.js"></script>
 </body>
 </html>
