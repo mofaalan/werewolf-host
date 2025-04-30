@@ -152,11 +152,11 @@ window.addEventListener('DOMContentLoaded', () => {
       window.confirmedIdentities[step.role] = selected;
 
       if (step.role === "狼王") {
-        if (!window.confirmedIdentities["狼人身份確認"].includes(selected[0])) {
-          window.confirmedIdentities["狼人身份確認"].push(selected[0]);
-        }
-        // overwrite狼人角色群，確保狼王包含在內
-        window.confirmedIdentities["狼人"] = [...window.confirmedIdentities["狼人身份確認"]];
+        const wolfList = window.confirmedIdentities["狼人身份確認"] || [];
+        const wolfKing = selected[0];
+        if (!wolfList.includes(wolfKing)) wolfList.push(wolfKing);
+        window.confirmedIdentities["狼人身份確認"] = wolfList;
+        window.confirmedIdentities["狼人"] = [...wolfList];
       }
 
       if (step.role === "炸彈人" || currentIndex === dynamicFlowSteps.length - 1) {
