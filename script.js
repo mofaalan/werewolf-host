@@ -148,16 +148,15 @@ window.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      if (step.role === "狼王") {
-        const wolfList = window.confirmedIdentities["狼人身份確認"] || [];
-        if (!wolfList.includes(selected[0])) {
-          wolfList.push(selected[0]);
-        }
-        window.confirmedIdentities["狼人身份確認"] = wolfList;
-      }
-
       if (!window.confirmedIdentities[step.role]) window.confirmedIdentities[step.role] = [];
       window.confirmedIdentities[step.role] = selected;
+
+      // 若狼王不是狼人身份，補入狼群中
+      if (step.role === "狼王") {
+        if (!window.confirmedIdentities["狼人身份確認"].includes(selected[0])) {
+          window.confirmedIdentities["狼人身份確認"].push(selected[0]);
+        }
+      }
 
       if (step.role === "炸彈人" || currentIndex === dynamicFlowSteps.length - 1) {
         const allRoles = Object.values(window.confirmedIdentities).flat();
