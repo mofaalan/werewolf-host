@@ -112,6 +112,7 @@ window.addEventListener('DOMContentLoaded', () => {
         .map(([role]) => role);
 
       if (matchedRoles.length > 0) {
+        btn.classList.remove("bg-gray-700");
         btn.classList.add("bg-green-500", "border", "border-yellow-300");
         const label = document.createElement("div");
         label.className = "text-xs text-yellow-300";
