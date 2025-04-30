@@ -107,18 +107,16 @@ window.addEventListener('DOMContentLoaded', () => {
       btn.textContent = p;
       btn.className = "bg-gray-700 px-3 py-1 rounded-lg hover:bg-gray-500";
 
-      for (const role in window.confirmedIdentities) {
-        if (window.confirmedIdentities[role]?.includes(p)) {
-          btn.classList.add("bg-green-500", "border", "border-yellow-300");
-          const label = document.createElement("div");
-          label.className = "text-xs text-yellow-300";
-          label.textContent = role;
-          btn.appendChild(label);
-        }
-      }
+      const matchedRoles = Object.entries(window.confirmedIdentities)
+        .filter(([_, players]) => players.includes(p))
+        .map(([role]) => role);
 
-      if (window.confirmedIdentities[step.role]?.includes(p)) {
+      if (matchedRoles.length > 0) {
         btn.classList.add("bg-green-500", "border", "border-yellow-300");
+        const label = document.createElement("div");
+        label.className = "text-xs text-yellow-300";
+        label.textContent = matchedRoles.join(", ");
+        btn.appendChild(label);
       }
 
       btn.onclick = () => {
