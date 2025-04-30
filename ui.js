@@ -4,16 +4,23 @@ import { GameState } from './state.js';
 
 const app = document.getElementById('app');
 
-function createPlayerButtons() {
+function createPlayerButtons(currentRole) {
   const container = document.createElement('div');
   GameState.players.forEach(player => {
     const btn = document.createElement('button');
     btn.textContent = player.id;
     btn.className = 'player-btn';
+
+    const roles = GameState.playerRoles[player.id] || [];
+    if (roles.includes(currentRole)) {
+      btn.classList.add('marked');
+    }
+
     btn.onclick = () => {
       document.querySelectorAll('.player-btn').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
     };
+
     container.appendChild(btn);
   });
   return container;
@@ -41,11 +48,17 @@ function renderStep() {
   const step = GameState.flowSteps[GameState.currentStep];
 
   const title = document.createElement('h2');
-  title.textContent = step.role;
+  title.textContent = '狼人殺法官助手 V2';
+
+  const box = document.createElement('div');
+  box.className = 'box';
+
+  const roleText = document.createElement('div');
+  roleText.textContent = step.role;
   const desc = document.createElement('p');
   desc.textContent = step.wakeText;
 
-  const players = createPlayerButtons();
+  const players = createPlayerButtons(step.role);
   const confirmBtn = createConfirmButton(step.role);
 
   const prevBtn = document.createElement('button');
@@ -66,7 +79,8 @@ function renderStep() {
     }
   };
 
-  app.append(title, desc, players, confirmBtn, document.createElement('br'), prevBtn, nextBtn);
+  box.append(roleText, desc, players, confirmBtn);
+  app.append(title, box, document.createElement('br'), prevBtn, nextBtn);
 }
 
 export function renderNextStep() {
@@ -124,10 +138,9 @@ function renderRoleSelector() {
     GameState.assignPlayers(GameState.playerCount);
     const baseRoles = [...selectedRoles];
 
-    // 自動補平民（數量補足）
     while (baseRoles.length < GameState.playerCount) baseRoles.push('平民');
-
     baseRoles.forEach((role, i) => GameState.setRole(GameState.players[i].id, role));
+
     GameState.buildNightFlow();
     renderStep();
   };
