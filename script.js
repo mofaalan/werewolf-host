@@ -116,14 +116,7 @@ window.addEventListener('DOMContentLoaded', () => {
         btn.classList.add("bg-green-500", "border", "border-yellow-300");
         const label = document.createElement("div");
         label.className = "text-xs text-yellow-300";
-
-        // 第三階段優化：狼王優先顯示
-        if (matchedRoles.includes("狼王")) {
-          label.textContent = "狼王";
-        } else {
-          label.textContent = matchedRoles.join(", ");
-        }
-
+        label.textContent = matchedRoles.join(", ");
         btn.appendChild(label);
       }
 
@@ -156,17 +149,11 @@ window.addEventListener('DOMContentLoaded', () => {
       }
 
       if (step.role === "狼王") {
-        for (const role in window.confirmedIdentities) {
-          if (role !== "狼王" && role !== "狼人身份確認") {
-            window.confirmedIdentities[role] = window.confirmedIdentities[role].filter(p => !selected.includes(p));
-          }
+        const wolfList = window.confirmedIdentities["狼人身份確認"] || [];
+        if (!wolfList.includes(selected[0])) {
+          wolfList.push(selected[0]);
         }
-        if (!window.confirmedIdentities["狼人身份確認"]) window.confirmedIdentities["狼人身份確認"] = [];
-        selected.forEach(p => {
-          if (!window.confirmedIdentities["狼人身份確認"].includes(p)) {
-            window.confirmedIdentities["狼人身份確認"].push(p);
-          }
-        });
+        window.confirmedIdentities["狼人身份確認"] = wolfList;
       }
 
       if (!window.confirmedIdentities[step.role]) window.confirmedIdentities[step.role] = [];
