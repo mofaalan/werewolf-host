@@ -123,6 +123,7 @@ window.addEventListener('DOMContentLoaded', () => {
       btn.onclick = () => {
         if (step.role === "狼王") {
           Array.from(selectionDiv.children).forEach(b => b.classList.remove("bg-green-500"));
+          window.confirmedIdentities["狼王"] = [];
         }
         btn.classList.toggle("bg-green-500");
       };
