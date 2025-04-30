@@ -121,6 +121,9 @@ window.addEventListener('DOMContentLoaded', () => {
       }
 
       btn.onclick = () => {
+        if (step.role === "狼王") {
+          Array.from(selectionDiv.children).forEach(b => b.classList.remove("bg-green-500"));
+        }
         btn.classList.toggle("bg-green-500");
       };
 
@@ -134,11 +137,27 @@ window.addEventListener('DOMContentLoaded', () => {
       const selected = Array.from(selectionDiv.children)
         .filter(b => b.classList.contains("bg-green-500"))
         .map(b => b.textContent.replace(/\n.*/, ''));
+
       if (selected.length === 0) {
         alert("請至少選擇一位玩家作為此角色持有者");
         return;
       }
+      if (step.role === "狼王" && selected.length > 1) {
+        alert("狼王只能指定一名玩家");
+        return;
+      }
+
       window.confirmedIdentities[step.role] = selected;
+
+      // 自動補上平民身份（流程結束階段）
+      if (step.role === "炸彈人" || currentIndex === dynamicFlowSteps.length - 1) {
+        const allRoles = Object.values(window.confirmedIdentities).flat();
+        const remaining = playerList.filter(p => !allRoles.includes(p));
+        if (remaining.length > 0) {
+          window.confirmedIdentities["平民"] = remaining;
+        }
+      }
+
       alert(`✔️ ${step.role} 身份記錄完成：${selected.join(", ")}`);
       nextStepBtn.click();
     };
